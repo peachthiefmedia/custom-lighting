@@ -4,9 +4,9 @@
   "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1", "@protyposis"],
   "config_flow": true,
   "dependencies": ["light"],
-  "documentation": "https://github.com/basnijholt/adaptive-lighting#readme",
+  "documentation": "https://github.com/peachthiefmedia/custom-lighting#readme",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/basnijholt/adaptive-lighting/issues",
+  "issue_tracker": "https://github.com/peachthiefmedia/custom-lighting/issues",
   "requirements": ["ulid-transform"],
   "version": "1.29.0"
 }
