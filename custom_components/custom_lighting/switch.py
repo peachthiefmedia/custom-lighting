@@ -550,21 +550,7 @@ async def async_setup_entry(  # noqa: PLR0915
         args,
         handle_change_switch_settings,
     )
-    # Register entity-level `apply` and `set_manual_control` services so they
-    # appear on each switch entity in the UI (in addition to the integration
-    # level services registered earlier).
-    platform.async_register_entity_service(
-        SERVICE_APPLY,
-        apply_service_schema(switch.initial_transition),
-        handle_apply,
-    )
-
-    platform.async_register_entity_service(
-        SERVICE_SET_MANUAL_CONTROL,
-        SET_MANUAL_CONTROL_SCHEMA,
-        handle_set_manual_control,
-    )
-
+    
 
 def validate(
     config_entry: ConfigEntry | None,
