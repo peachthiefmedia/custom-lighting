@@ -1649,7 +1649,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         config_entry: ConfigEntry,
         icon: str,
     ) -> None:
-    """Initialize the Custom Lighting switch."""
+        """Initialize the Custom Lighting switch."""
         self.hass = hass
         data = validate(config_entry)
         self._icon = icon

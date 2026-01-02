@@ -16,8 +16,8 @@ from .const import (  # pylint: disable=unused-import
     NONE_STR,
     VALIDATION_TUPLES,
 )
-from .switch import validate
-
+# `validate` lives in `switch.py` which is large; import it lazily inside
+# the options flow handler to avoid blocking the event loop during import.
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -125,6 +125,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Handle options flow."""
         conf = self.config_entry
+        # Import validate lazily to avoid importing the large `switch` module
+        # during module import time (which blocks the event loop).
+        from .switch import validate
+
         data = validate(conf)
         if conf.source == config_entries.SOURCE_IMPORT:
             return self.async_show_form(step_id="init", data_schema=None)
