@@ -238,6 +238,11 @@ class SunLightSettings:
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
+    # Optional four time points during the day for linear interpolation
+    use_time_points: bool = False
+    time_points: tuple[datetime.time, datetime.time, datetime.time, datetime.time] | None = None
+    time_brightness: tuple[int, int, int, int] | None = None
+    time_color_temp: tuple[int, int, int, int] | None = None
 
     @cached_property
     def sun(self) -> SunEvents:
