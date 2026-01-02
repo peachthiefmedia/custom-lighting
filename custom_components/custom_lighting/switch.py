@@ -1,4 +1,4 @@
-"""Switch for the Adaptive Lighting integration."""
+"""Switch for the Custom Lighting integration."""
 
 from __future__ import annotations
 
@@ -126,6 +126,19 @@ from .const import (
     CONF_SUNRISE_TIME,
     CONF_SUNSET_OFFSET,
     CONF_SUNSET_TIME,
+    CONF_USE_TIME_POINTS,
+    CONF_TIME_POINT_1,
+    CONF_TIME_POINT_2,
+    CONF_TIME_POINT_3,
+    CONF_TIME_POINT_4,
+    CONF_TIME_BRIGHTNESS_1,
+    CONF_TIME_BRIGHTNESS_2,
+    CONF_TIME_BRIGHTNESS_3,
+    CONF_TIME_BRIGHTNESS_4,
+    CONF_TIME_COLOR_TEMP_1,
+    CONF_TIME_COLOR_TEMP_2,
+    CONF_TIME_COLOR_TEMP_3,
+    CONF_TIME_COLOR_TEMP_4,
     CONF_TAKE_OVER_CONTROL,
     CONF_TAKE_OVER_CONTROL_MODE,
     CONF_TRANSITION,
@@ -289,18 +302,18 @@ def _switches_from_service_call(
 
     if not lights and not switch_entity_ids:
         msg = (
-            "adaptive-lighting: Neither a switch nor a light was provided in the service call."
+            "custom-lighting: Neither a switch nor a light was provided in the service call."
             " If you intend to adapt all lights on all switches, please inform the"
             " developers at https://github.com/basnijholt/adaptive-lighting about your"
-            " use case. Currently, you must pass either an adaptive-lighting switch or"
-            " the lights to an `adaptive_lighting` service call."
+            " use case. Currently, you must pass either a custom-lighting switch or"
+            " the lights to a `custom_lighting` service call."
         )
         raise ValueError(msg)
 
     if switch_entity_ids is not None:
         if len(switch_entity_ids) > 1 and lights:
             msg = (
-                "adaptive-lighting: Cannot pass multiple switches with lights argument."
+                "custom-lighting: Cannot pass multiple switches with lights argument."
                 f" Invalid service data received: {service_call.data}"
             )
             raise ValueError(msg)
@@ -318,7 +331,7 @@ def _switches_from_service_call(
         return [switch]
 
     msg = (
-        "adaptive-lighting: Incorrect data provided in service call."
+        "custom-lighting: Incorrect data provided in service call."
         f" Entities not found in the integration. Service data: {service_call.data}"
     )
     raise ValueError(msg)
@@ -347,7 +360,7 @@ async def handle_change_switch_settings(
         switch._update_time_interval_listener()
 
     _LOGGER.debug(
-        "Called 'adaptive_lighting.change_switch_settings' service with '%s'",
+        "Called 'custom_lighting.change_switch_settings' service with '%s'",
         data,
     )
 
@@ -366,12 +379,12 @@ async def async_setup_entry(  # noqa: PLR0915
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the AdaptiveLighting switch."""
+    """Set up the CustomLighting switch."""
     assert hass is not None
     data = hass.data[DOMAIN]
     assert config_entry.entry_id in data
     _LOGGER.debug(
-        "Setting up AdaptiveLighting with data: %s and config_entry %s",
+        "Setting up CustomLighting with data: %s and config_entry %s",
         data,
         config_entry,
     )
@@ -380,7 +393,7 @@ async def async_setup_entry(  # noqa: PLR0915
         and config_entry.unique_id not in data.get("__yaml__", set())
     ):
         _LOGGER.warning(
-            "Deleting AdaptiveLighting switch '%s' because YAML"
+            "Deleting CustomLighting switch '%s' because YAML"
             " defined switch has been removed from YAML configuration",
             config_entry.unique_id,
         )
@@ -436,7 +449,7 @@ async def async_setup_entry(  # noqa: PLR0915
         """Handle the entity service apply."""
         data = service_call.data
         _LOGGER.debug(
-            "Called 'adaptive_lighting.apply' service with '%s'",
+            "Called 'custom_lighting.apply' service with '%s'",
             data,
         )
         switches = _switches_from_service_call(hass, service_call)
@@ -468,7 +481,7 @@ async def async_setup_entry(  # noqa: PLR0915
         """Set or unset lights as 'manually controlled'."""
         data = service_call.data
         _LOGGER.debug(
-            "Called 'adaptive_lighting.set_manual_control' service with '%s'",
+            "Called 'custom_lighting.set_manual_control' service with '%s'",
             data,
         )
         switches = _switches_from_service_call(hass, service_call)
@@ -969,6 +982,25 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             brightness_mode=data[CONF_BRIGHTNESS_MODE],
             brightness_mode_time_dark=data[CONF_BRIGHTNESS_MODE_TIME_DARK],
             brightness_mode_time_light=data[CONF_BRIGHTNESS_MODE_TIME_LIGHT],
+            use_time_points=data.get(CONF_USE_TIME_POINTS, False),
+            time_points=(
+                data.get(CONF_TIME_POINT_1),
+                data.get(CONF_TIME_POINT_2),
+                data.get(CONF_TIME_POINT_3),
+                data.get(CONF_TIME_POINT_4),
+            ),
+            time_brightness=(
+                data.get(CONF_TIME_BRIGHTNESS_1),
+                data.get(CONF_TIME_BRIGHTNESS_2),
+                data.get(CONF_TIME_BRIGHTNESS_3),
+                data.get(CONF_TIME_BRIGHTNESS_4),
+            ),
+            time_color_temp=(
+                data.get(CONF_TIME_COLOR_TEMP_1),
+                data.get(CONF_TIME_COLOR_TEMP_2),
+                data.get(CONF_TIME_COLOR_TEMP_3),
+                data.get(CONF_TIME_COLOR_TEMP_4),
+            ),
             timezone=zoneinfo.ZoneInfo(self.hass.config.time_zone),
         )
         _LOGGER.debug(
@@ -981,7 +1013,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     @property
     def name(self) -> str:
         """Return the name of the device if any."""
-        return f"Adaptive Lighting: {self._name}"
+        return f"Custom Lighting: {self._name}"
 
     @property
     def unique_id(self) -> str:
@@ -1138,7 +1170,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         which: str = "default",
         parent: Context | None = None,
     ) -> Context:
-        """Create a context that identifies this Adaptive Lighting instance."""
+        """Create a context that identifies this Custom Lighting instance."""
         context = create_context(self._name, which, self._context_cnt, parent=parent)
         self._context_cnt += 1
         return context
@@ -1536,7 +1568,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
             self._take_over_control
             and self._adapt_only_on_bare_turn_on
             and from_turn_on
-            # adaptive_lighting.apply can turn on light, so check this is not our context
+            # custom_lighting.apply can turn on light, so check this is not our context
             and not is_our_context(event.context)
         ):
             service_data = self.manager.turn_on_event[entity_id].data[ATTR_SERVICE_DATA]
@@ -1590,7 +1622,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
     ) -> None:
         """Fire an event that 'light' is marked as manual_control."""
         _LOGGER.debug(
-            "'adaptive_lighting.manual_control' event fired for %s for light %s",
+            "'custom_lighting.manual_control' event fired for %s for light %s",
             self.entity_id,
             light,
         )
@@ -1607,7 +1639,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
 
 
 class SimpleSwitch(SwitchEntity, RestoreEntity):
-    """Representation of a Adaptive Lighting switch."""
+    """Representation of a Custom Lighting switch."""
 
     def __init__(
         self,
@@ -1617,7 +1649,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         config_entry: ConfigEntry,
         icon: str,
     ) -> None:
-        """Initialize the Adaptive Lighting switch."""
+    """Initialize the Custom Lighting switch."""
         self.hass = hass
         data = validate(config_entry)
         self._icon = icon
@@ -1625,7 +1657,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
         self._which = which
         self._config_name = data[CONF_NAME]
         self._unique_id = f"{self._config_name}_{slugify(self._which)}"
-        self._name = f"Adaptive Lighting {which}: {self._config_name}"
+        self._name = f"Custom Lighting {which}: {self._config_name}"
         self._initial_state = initial_state
 
     @property
@@ -1655,7 +1687,7 @@ class SimpleSwitch(SwitchEntity, RestoreEntity):
             identifiers={
                 (DOMAIN, self._config_name),
             },
-            name=f"Adaptive Lighting: {self._config_name}",
+            name=f"Custom Lighting: {self._config_name}",
             entry_type=DeviceEntryType.SERVICE,
         )
 
@@ -2602,12 +2634,12 @@ class AdaptiveLightingManager:
             return
 
         # Light was already on and 'light.turn_on' was not called by
-        # the adaptive_lighting integration.
+        # the custom_lighting integration.
         self.add_manual_control_attributes(light, turn_on_attributes)
         switch.fire_manual_control_event(light, turn_on_event.context)
         _LOGGER.debug(
             "'%s' was already on and 'light.turn_on' was not called by the"
-            " adaptive_lighting integration (context.id='%s'), the Adaptive"
+            " custom_lighting integration (context.id='%s'), the Adaptive"
             " Lighting will stop adapting %s of the light until the switch or the"
             " light turns off and then on again.",
             light,
@@ -2706,11 +2738,11 @@ class AdaptiveLightingManager:
         # Adaptive Lighting should never turn on lights itself
         if is_our_context(off_to_on_event.context) and not is_our_context(
             off_to_on_event.context,
-            "service",  # adaptive_lighting.apply is allowed to turn on lights
+            "service",  # custom_lighting.apply is allowed to turn on lights
         ):
             _LOGGER.warning(
                 "Detected an 'off' → 'on' event for '%s' with context.id='%s' and"
-                " event='%s', triggered by the adaptive_lighting integration itself,"
+                " event='%s', triggered by the custom_lighting integration itself,"
                 " which *should* not happen. If you see this please submit an issue with"
                 " your full logs at https://github.com/basnijholt/adaptive-lighting",
                 entity_id,

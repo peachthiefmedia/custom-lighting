@@ -1,4 +1,4 @@
-"""Constants for the Adaptive Lighting integration."""
+"""Constants for the Custom Lighting integration."""
 
 from datetime import timedelta
 from enum import Enum
@@ -15,7 +15,7 @@ ICON_BRIGHTNESS = "mdi:brightness-4"
 ICON_COLOR_TEMP = "mdi:sun-thermometer"
 ICON_SLEEP = "mdi:sleep"
 
-DOMAIN = "adaptive_lighting"
+DOMAIN = "custom_lighting"
 
 
 class TakeOverControlMode(Enum):
@@ -195,6 +195,42 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
     "(Ignored if `brightness_mode='default'`) The duration in seconds to ramp up/down "
     "the brightness after/before sunrise/sunset. 📈📉."
 )
+
+# Optional four time points during the day for linear interpolation
+CONF_USE_TIME_POINTS, DEFAULT_USE_TIME_POINTS = "use_time_points", False
+DOCS[CONF_USE_TIME_POINTS] = "Use four user-defined time points for interpolation. ⏱️"
+
+CONF_TIME_POINT_1 = "time_point_1"
+CONF_TIME_POINT_2 = "time_point_2"
+CONF_TIME_POINT_3 = "time_point_3"
+CONF_TIME_POINT_4 = "time_point_4"
+DOCS[CONF_TIME_POINT_1] = "First time point (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_2] = "Second time point (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_3] = "Third time point (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_4] = "Fourth time point (HH:MM:SS) for interpolation."
+
+CONF_TIME_BRIGHTNESS_1 = "time_brightness_1"
+CONF_TIME_BRIGHTNESS_2 = "time_brightness_2"
+CONF_TIME_BRIGHTNESS_3 = "time_brightness_3"
+CONF_TIME_BRIGHTNESS_4 = "time_brightness_4"
+DEFAULT_TIME_BRIGHTNESS = 50
+DOCS[CONF_TIME_BRIGHTNESS_1] = "Brightness (%) at time point 1."
+DOCS[CONF_TIME_BRIGHTNESS_2] = "Brightness (%) at time point 2."
+DOCS[CONF_TIME_BRIGHTNESS_3] = "Brightness (%) at time point 3."
+DOCS[CONF_TIME_BRIGHTNESS_4] = "Brightness (%) at time point 4."
+
+CONF_TIME_COLOR_TEMP_1 = "time_color_temp_1"
+CONF_TIME_COLOR_TEMP_2 = "time_color_temp_2"
+CONF_TIME_COLOR_TEMP_3 = "time_color_temp_3"
+CONF_TIME_COLOR_TEMP_4 = "time_color_temp_4"
+DEFAULT_TIME_COLOR_TEMP_1 = 2000
+DEFAULT_TIME_COLOR_TEMP_2 = 3000
+DEFAULT_TIME_COLOR_TEMP_3 = 4500
+DEFAULT_TIME_COLOR_TEMP_4 = 5500
+DOCS[CONF_TIME_COLOR_TEMP_1] = "Color temperature (K) at time point 1."
+DOCS[CONF_TIME_COLOR_TEMP_2] = "Color temperature (K) at time point 2."
+DOCS[CONF_TIME_COLOR_TEMP_3] = "Color temperature (K) at time point 3."
+DOCS[CONF_TIME_COLOR_TEMP_4] = "Color temperature (K) at time point 4."
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
@@ -405,6 +441,19 @@ VALIDATION_TUPLES: list[tuple[str, Any, Any]] = [
     (CONF_INTERCEPT, DEFAULT_INTERCEPT, bool),
     (CONF_MULTI_LIGHT_INTERCEPT, DEFAULT_MULTI_LIGHT_INTERCEPT, bool),
     (CONF_INCLUDE_CONFIG_IN_ATTRIBUTES, DEFAULT_INCLUDE_CONFIG_IN_ATTRIBUTES, bool),
+    (CONF_USE_TIME_POINTS, DEFAULT_USE_TIME_POINTS, bool),
+    (CONF_TIME_POINT_1, NONE_STR, str),
+    (CONF_TIME_POINT_2, NONE_STR, str),
+    (CONF_TIME_POINT_3, NONE_STR, str),
+    (CONF_TIME_POINT_4, NONE_STR, str),
+    (CONF_TIME_BRIGHTNESS_1, DEFAULT_TIME_BRIGHTNESS, int_between(1, 100)),
+    (CONF_TIME_BRIGHTNESS_2, DEFAULT_TIME_BRIGHTNESS, int_between(1, 100)),
+    (CONF_TIME_BRIGHTNESS_3, DEFAULT_TIME_BRIGHTNESS, int_between(1, 100)),
+    (CONF_TIME_BRIGHTNESS_4, DEFAULT_TIME_BRIGHTNESS, int_between(1, 100)),
+    (CONF_TIME_COLOR_TEMP_1, DEFAULT_TIME_COLOR_TEMP_1, int_between(1000, 10000)),
+    (CONF_TIME_COLOR_TEMP_2, DEFAULT_TIME_COLOR_TEMP_2, int_between(1000, 10000)),
+    (CONF_TIME_COLOR_TEMP_3, DEFAULT_TIME_COLOR_TEMP_3, int_between(1000, 10000)),
+    (CONF_TIME_COLOR_TEMP_4, DEFAULT_TIME_COLOR_TEMP_4, int_between(1000, 10000)),
 ]
 
 
@@ -430,6 +479,10 @@ EXTRA_VALIDATION: dict[str, tuple[Any, Any]] = {
     CONF_MAX_SUNSET_TIME: (cv.time, str),
     CONF_BRIGHTNESS_MODE_TIME_LIGHT: (cv.time_period, timedelta_as_int),
     CONF_BRIGHTNESS_MODE_TIME_DARK: (cv.time_period, timedelta_as_int),
+    CONF_TIME_POINT_1: (cv.time, str),
+    CONF_TIME_POINT_2: (cv.time, str),
+    CONF_TIME_POINT_3: (cv.time, str),
+    CONF_TIME_POINT_4: (cv.time, str),
 }
 
 

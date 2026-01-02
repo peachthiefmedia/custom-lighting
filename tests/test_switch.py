@@ -1,4 +1,4 @@
-"""Tests for Adaptive Lighting switches."""
+"""Tests for Custom Lighting switches."""
 
 # pylint: disable=protected-access
 import asyncio
@@ -16,15 +16,15 @@ import pytest
 import ulid_transform
 import voluptuous.error
 from flaky import flaky
-from homeassistant.components.adaptive_lighting.adaptation_utils import (
+from homeassistant.components.custom_lighting.adaptation_utils import (
     AdaptationData,
     LightControlAttributes,
     _create_service_call_data_iterator,
 )
-from homeassistant.components.adaptive_lighting.color_and_brightness import (
+from homeassistant.components.custom_lighting.color_and_brightness import (
     lerp_color_hsv,
 )
-from homeassistant.components.adaptive_lighting.const import (
+from homeassistant.components.custom_lighting.const import (
     ADAPT_BRIGHTNESS_SWITCH,
     ADAPT_COLOR_SWITCH,
     ATTR_ADAPTIVE_LIGHTING_MANAGER,
@@ -63,7 +63,7 @@ from homeassistant.components.adaptive_lighting.const import (
     UNDO_UPDATE_LISTENER,
     TakeOverControlMode,
 )
-from homeassistant.components.adaptive_lighting.switch import (
+from homeassistant.components.custom_lighting.switch import (
     CONF_INTERCEPT,
     AdaptiveLightingManager,
     AdaptiveSwitch,
@@ -395,7 +395,7 @@ async def test_adaptive_lighting_time_zones_with_default_settings(
     timezone,
     reset_time_zone,  # pylint: disable=redefined-outer-name
 ):
-    """Test setting up the Adaptive Lighting switches with different timezones."""
+    """Test setting up the Custom Lighting switches with different timezones."""
     await async_process_ha_core_config(
         hass,
         {"latitude": lat, "longitude": long, "time_zone": timezone, "country": "US"},
@@ -415,7 +415,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
     timezone,
     reset_time_zone,  # pylint: disable=redefined-outer-name
 ):
-    """Test setting up the Adaptive Lighting switches with different timezones.
+    """Test setting up the Custom Lighting switches with different timezones.
 
     Also test the (sleep) brightness and color temperature settings.
     """
@@ -444,7 +444,7 @@ async def test_adaptive_lighting_time_zones_and_sun_settings(
 
     async def patch_time_and_update(time):
         with patch(
-            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.custom_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
@@ -536,7 +536,7 @@ async def test_light_settings(hass):
 
     async def patch_time_and_get_updated_states(time):
         with patch(
-            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.custom_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(
@@ -594,7 +594,7 @@ async def test_light_settings(hass):
 
 
 async def test_manager_not_tracking_untracked_lights(hass):
-    """Test that lights that are not in a Adaptive Lighting switch aren't tracked."""
+    """Test that lights that are not in a Custom Lighting switch aren't tracked."""
     switch, _ = await setup_lights_and_switch(hass)
     light = ENTITY_LIGHT_3
     assert light not in switch.lights
@@ -1417,7 +1417,7 @@ def test_is_our_context():
 
 
 async def test_unload_switch(hass):
-    """Test removing Adaptive Lighting."""
+    """Test removing Custom Lighting."""
     entry, _ = await setup_switch(hass, {})
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
@@ -1461,7 +1461,7 @@ async def test_offset_too_large(hass):
     """Test that update fails when the sunrise offset is too large.
 
     A 12-hour offset causes sun events to be out of order (e.g., sunrise after sunset),
-    which makes the adaptive lighting algorithm fail with a ValueError.
+    which makes the custom lighting algorithm fail with a ValueError.
     """
     _, switch = await setup_switch(hass, {CONF_SUNRISE_OFFSET: 3600 * 12})
     with pytest.raises(ValueError, match="sun events.*not in the expected order"):
@@ -2129,7 +2129,7 @@ async def test_two_switches_for_single_light(hass):
 
 
 async def test_adapt_until_sleep_and_rgb_colors(hass):
-    """Test setting up the Adaptive Lighting switches with different timezones.
+    """Test setting up the Custom Lighting switches with different timezones.
 
     Also test the (sleep) brightness and color temperature settings.
     """
@@ -2160,7 +2160,7 @@ async def test_adapt_until_sleep_and_rgb_colors(hass):
 
     async def patch_time_and_update(time):
         with patch(
-            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.custom_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)
@@ -2420,7 +2420,7 @@ async def test_brightness_mode(hass, brightness_mode, dark, light):
 
     async def patch_time_and_update(time):
         with patch(
-            "homeassistant.components.adaptive_lighting.color_and_brightness.utcnow",
+            "homeassistant.components.custom_lighting.color_and_brightness.utcnow",
             return_value=time,
         ):
             await switch._update_attrs_and_maybe_adapt_lights(context=context)

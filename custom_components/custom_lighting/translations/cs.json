@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Nastavení Adaptivního osvětlení",
-        "description": "Všechna nastavení komponenty Adaptivního osvětlení. Názvy možností odpovídají nastavení YAML. Pokud máte v konfiguraci YAML definovánu položku 'adaptive_lighting', nezobrazí se žádné možnosti.",
+        "description": "Všechna nastavení komponenty Adaptivního osvětlení. Názvy možností odpovídají nastavení YAML. Pokud máte v konfiguraci YAML definovánu položku 'custom_lighting', nezobrazí se žádné možnosti.",
         "data": {
           "lights": "lights: Seznam světel (entity_id), které mají být ovládané (může být prázdný). 🌟",
           "initial_transition": "initial_transition: Prodlení pro změnu z 'vypnuto' do 'zapnuto' (sekundy)",

@@ -9,10 +9,11 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import UTC, timedelta
+from enum import Enum
 from functools import cached_property, partial
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from homeassistant_util_color import (
+from homeassistant.util.color import (
     color_RGB_to_xy,
     color_temperature_to_rgb,
     color_xy_to_hs,
@@ -21,15 +22,19 @@ from homeassistant_util_color import (
 if TYPE_CHECKING:
     import astral.location
 
-# Same as homeassistant.const.SUN_EVENT_SUNRISE and homeassistant.const.SUN_EVENT_SUNSET
-# We re-define them here to not depend on homeassistant in this file.
-SUN_EVENT_SUNRISE = "sunrise"
-SUN_EVENT_SUNSET = "sunset"
 
-SUN_EVENT_NOON = "solar_noon"
-SUN_EVENT_MIDNIGHT = "solar_midnight"
+class SunEvent(str, Enum):
+    """A set of sun events that happen during a day."""
 
-_ORDER = (SUN_EVENT_SUNRISE, SUN_EVENT_NOON, SUN_EVENT_SUNSET, SUN_EVENT_MIDNIGHT)
+    # Same as homeassistant.const.SUN_EVENT_SUNRISE and homeassistant.const.SUN_EVENT_SUNSET
+    # We re-define them here to not depend on homeassistant in this file.
+    SUNRISE = "sunrise"
+    SUNSET = "sunset"
+    NOON = "solar_noon"
+    MIDNIGHT = "solar_midnight"
+
+
+_ORDER = (SunEvent.SUNRISE, SunEvent.NOON, SunEvent.SUNSET, SunEvent.MIDNIGHT)
 _ALLOWED_ORDERS = {_ORDER[i:] + _ORDER[:i] for i in range(len(_ORDER))}
 
 utcnow: partial[datetime.datetime] = partial(datetime.datetime.now, UTC)
@@ -53,6 +58,14 @@ class SunEvents:
     sunrise_offset: datetime.timedelta = datetime.timedelta()
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
+    # Optional: use four user-defined time points during the day for linear
+    # interpolation of brightness and color temperature.
+    # When provided and `use_time_points` is True, Adaptive Lighting will
+    # interpolate between these points instead of using sunrise/sunset logic.
+    use_time_points: bool = False
+    time_points: tuple[datetime.time, datetime.time, datetime.time, datetime.time] | None = None
+    time_brightness: tuple[int, int, int, int] | None = None
+    time_color_temp: tuple[int, int, int, int] | None = None
 
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
@@ -126,21 +139,21 @@ class SunEvents:
             noon = midnight + timedelta(hours=12) * (1 if midnight.hour < 12 else -1)
         return noon, midnight
 
-    def sun_events(self, dt: datetime.datetime) -> list[tuple[str, float]]:
+    def sun_events(self, dt: datetime.datetime) -> list[tuple[SunEvent, float]]:
         """Get the four sun event's timestamps at 'dt'."""
         sunrise = self.sunrise(dt)
         sunset = self.sunset(dt)
         solar_noon, solar_midnight = self.noon_and_midnight(dt, sunset, sunrise)
-        events = [
-            (SUN_EVENT_SUNRISE, sunrise.timestamp()),
-            (SUN_EVENT_SUNSET, sunset.timestamp()),
-            (SUN_EVENT_NOON, solar_noon.timestamp()),
-            (SUN_EVENT_MIDNIGHT, solar_midnight.timestamp()),
+        events: list[tuple[SunEvent, float]] = [
+            (SunEvent.SUNRISE, sunrise.timestamp()),
+            (SunEvent.SUNSET, sunset.timestamp()),
+            (SunEvent.NOON, solar_noon.timestamp()),
+            (SunEvent.MIDNIGHT, solar_midnight.timestamp()),
         ]
         self._validate_sun_event_order(events)
         return events
 
-    def _validate_sun_event_order(self, events: list[tuple[str, float]]) -> None:
+    def _validate_sun_event_order(self, events: list[tuple[SunEvent, float]]) -> None:
         """Check if the sun events are in the expected order."""
         events = sorted(events, key=lambda x: x[1])
         events_names, _ = zip(*events, strict=True)
@@ -154,7 +167,10 @@ class SunEvents:
             _LOGGER.error(msg)
             raise ValueError(msg)
 
-    def prev_and_next_events(self, dt: datetime.datetime) -> list[tuple[str, float]]:
+    def prev_and_next_events(
+        self,
+        dt: datetime.datetime,
+    ) -> list[tuple[SunEvent, float]]:
         """Get the previous and next sun event."""
         events = [
             event
@@ -171,23 +187,26 @@ class SunEvents:
         (_, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
         h, x = (
             (prev_ts, next_ts)
-            if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_SUNRISE)
+            if next_event in (SunEvent.SUNSET, SunEvent.SUNRISE)
             else (next_ts, prev_ts)
         )
         # k = -1 between sunset and sunrise (sun below horizon)
         # k = 1 between sunrise and sunset (sun above horizon)
-        k = 1 if next_event in (SUN_EVENT_SUNSET, SUN_EVENT_NOON) else -1
+        k = 1 if next_event in (SunEvent.SUNSET, SunEvent.NOON) else -1
         return k * (1 - ((target_ts - h) / (h - x)) ** 2)
 
-    def closest_event(self, dt: datetime.datetime) -> tuple[str, float]:
+    def closest_event(
+        self,
+        dt: datetime.datetime,
+    ) -> tuple[Literal[SunEvent.SUNRISE, SunEvent.SUNSET], float]:
         """Get the closest sunset or sunrise event."""
         (prev_event, prev_ts), (next_event, next_ts) = self.prev_and_next_events(dt)
-        if SUN_EVENT_SUNRISE in (prev_event, next_event):
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNRISE else next_ts
-            return SUN_EVENT_SUNRISE, ts_event
-        if SUN_EVENT_SUNSET in (prev_event, next_event):
-            ts_event = prev_ts if prev_event == SUN_EVENT_SUNSET else next_ts
-            return SUN_EVENT_SUNSET, ts_event
+        if SunEvent.SUNRISE in (prev_event, next_event):
+            ts_event = prev_ts if prev_event == SunEvent.SUNRISE else next_ts
+            return SunEvent.SUNRISE, ts_event
+        if SunEvent.SUNSET in (prev_event, next_event):
+            ts_event = prev_ts if prev_event == SunEvent.SUNSET else next_ts
+            return SunEvent.SUNSET, ts_event
         msg = "No sunrise or sunset event found."
         raise ValueError(msg)
 
@@ -239,6 +258,11 @@ class SunLightSettings:
 
     def _brightness_pct_default(self, dt: datetime.datetime) -> float:
         """Calculate the brightness percentage using the default method."""
+        # If user-provided time points are enabled, use linear interpolation
+        # between those points for brightness.
+        if self.use_time_points and self.time_points and self.time_brightness:
+            return self._interpolate_from_time_points(dt, self.time_points, self.time_brightness)
+
         sun_position = self.sun.sun_position(dt)
         if sun_position > 0:
             return self.max_brightness
@@ -249,7 +273,7 @@ class SunLightSettings:
         event, ts_event = self.sun.closest_event(dt)
         dark = self.brightness_mode_time_dark.total_seconds()
         light = self.brightness_mode_time_light.total_seconds()
-        if event == SUN_EVENT_SUNRISE:
+        if event == SunEvent.SUNRISE:
             brightness = scaled_tanh(
                 dt.timestamp() - ts_event,
                 x1=-dark,
@@ -259,7 +283,7 @@ class SunLightSettings:
                 y_min=self.min_brightness,
                 y_max=self.max_brightness,
             )
-        elif event == SUN_EVENT_SUNSET:
+        elif event == SunEvent.SUNSET:
             brightness = scaled_tanh(
                 dt.timestamp() - ts_event,
                 x1=-light,  # shifted timestamp for the start of sunset
@@ -269,6 +293,9 @@ class SunLightSettings:
                 y_min=self.min_brightness,
                 y_max=self.max_brightness,
             )
+        else:
+            msg = "Unsupported sun event"
+            raise ValueError(msg)
         return clamp(brightness, self.min_brightness, self.max_brightness)
 
     def _brightness_pct_linear(self, dt: datetime.datetime) -> float:
@@ -277,7 +304,7 @@ class SunLightSettings:
         # at ts_event + dt_end, brightness == end_brightness
         dark = self.brightness_mode_time_dark.total_seconds()
         light = self.brightness_mode_time_light.total_seconds()
-        if event == SUN_EVENT_SUNRISE:
+        if event == SunEvent.SUNRISE:
             brightness = lerp(
                 dt.timestamp() - ts_event,
                 x1=-dark,
@@ -285,7 +312,7 @@ class SunLightSettings:
                 y1=self.min_brightness,
                 y2=self.max_brightness,
             )
-        elif event == SUN_EVENT_SUNSET:
+        elif event == SunEvent.SUNSET:
             brightness = lerp(
                 dt.timestamp() - ts_event,
                 x1=-light,
@@ -293,6 +320,9 @@ class SunLightSettings:
                 y1=self.max_brightness,
                 y2=self.min_brightness,
             )
+        else:
+            msg = "Unsupported sun event"
+            raise ValueError(msg)
         return clamp(brightness, self.min_brightness, self.max_brightness)
 
     def brightness_pct(self, dt: datetime.datetime, is_sleep: bool) -> float | None:
@@ -310,6 +340,19 @@ class SunLightSettings:
 
     def color_temp_kelvin(self, sun_position: float) -> int:
         """Calculate the color temperature in Kelvin."""
+        # If user-provided time points are enabled, compute color temp by
+        # interpolating between configured color temps rather than using
+        # the sun_position logic.
+        if self.use_time_points and self.time_points and self.time_color_temp:
+            # We ignore sun_position in this mode; the caller passes in a
+            # value but we'll compute from the current datetime instead.
+            # Caller (brightness_and_color) will detect use_time_points and
+            # call this method with a dummy sun_position.
+            # To keep signature stable, extract current time from UTC now.
+            now = utcnow()
+            ct = self._interpolate_from_time_points(now, self.time_points, self.time_color_temp)
+            return 5 * round(ct / 5)
+
         if sun_position > 0:
             delta = self.max_color_temp - self.min_color_temp
             ct = (delta * sun_position) + self.min_color_temp
@@ -337,6 +380,13 @@ class SunLightSettings:
         if is_sleep:
             color_temp_kelvin = self.sleep_color_temp
             rgb_color = self.sleep_rgb_color
+        elif self.use_time_points and self.time_points and self.time_color_temp:
+            # If using custom time points, calculate color temperature directly
+            color_temp_kelvin = 5 * round(
+                self._interpolate_from_time_points(dt, self.time_points, self.time_color_temp) / 5
+            )
+            r, g, b = color_temperature_to_rgb(color_temp_kelvin)
+            rgb_color = (round(r), round(g), round(b))
         elif (
             self.sleep_rgb_or_color_temp == "rgb_color"
             and self.adapt_until_sleep
@@ -356,7 +406,8 @@ class SunLightSettings:
             force_rgb_color = True
         else:
             color_temp_kelvin = self.color_temp_kelvin(sun_position)
-            rgb_color = color_temperature_to_rgb(color_temp_kelvin)
+            r, g, b = color_temperature_to_rgb(color_temp_kelvin)
+            rgb_color = (round(r), round(g), round(b))
         # backwards compatibility for versions < 1.3.1 - see #403
         color_temp_mired: float = math.floor(1000000 / color_temp_kelvin)
         xy_color: tuple[float, float] = color_RGB_to_xy(*rgb_color)
@@ -371,6 +422,42 @@ class SunLightSettings:
             "sun_position": sun_position,
             "force_rgb_color": force_rgb_color,
         }
+
+    def _interpolate_from_time_points(
+        self,
+        dt: datetime.datetime,
+        times: tuple[datetime.time, datetime.time, datetime.time, datetime.time],
+        values: tuple[float, float, float, float],
+    ) -> float:
+        """Interpolate a value from four daily time points (linear).
+
+        This handles wrap-around by considering the previous and next day
+        occurrences of the points.
+        """
+        # Build list of (timestamp, value) for day offsets -1,0,1
+        pts: list[tuple[float, float]] = []
+        for day_offset in (-1, 0, 1):
+            date = (dt + timedelta(days=day_offset)).date()
+            for i in range(4):
+                ts = self.sun._replace_time(date, times[i]).timestamp()
+                pts.append((ts, float(values[i])))
+        pts.sort(key=lambda x: x[0])
+
+        target = dt.timestamp()
+        # Find the interval containing target
+        for i in range(len(pts) - 1):
+            t0, v0 = pts[i]
+            t1, v1 = pts[i + 1]
+            if t0 <= target <= t1:
+                if t1 == t0:
+                    return v0
+                # Linear interpolation
+                return v0 + (target - t0) * (v1 - v0) / (t1 - t0)
+
+        # If not found (shouldn't happen), return nearest value
+        if target < pts[0][0]:
+            return pts[0][1]
+        return pts[-1][1]
 
     def get_settings(
         self,

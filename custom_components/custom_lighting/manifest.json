@@ -1,6 +1,6 @@
 {
-  "domain": "adaptive_lighting",
-  "name": "Adaptive Lighting",
+  "domain": "custom_lighting",
+  "name": "Custom Lighting",
   "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1", "@protyposis"],
   "config_flow": true,
   "dependencies": ["light"],

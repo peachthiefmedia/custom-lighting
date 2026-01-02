@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "README.md"
-      - "custom_components/adaptive_lighting/const.py"
+      - "custom_components/custom_lighting/const.py"
       - ".github/workflows/update-readme.yml"
   pull_request:
 

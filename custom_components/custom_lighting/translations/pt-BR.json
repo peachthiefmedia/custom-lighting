@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Opções da iluminação adaptiva",
-        "description": "Todas as configurações de um componente de iluminação adaptativa. Os nomes das opções correspondem às configurações de YAML. Nenhuma opção será exibida se você tiver a entrada adaptive_lighting definida em sua configuração YAML.",
+        "description": "Todas as configurações de um componente de iluminação adaptativa. Os nomes das opções correspondem às configurações de YAML. Nenhuma opção será exibida se você tiver a entrada custom_lighting definida em sua configuração YAML.",
         "data": {
           "lights": "luzes",
           "initial_transition": "initial_transition: Quando as luzes mudam de 'off' para 'on'. (segundos)",

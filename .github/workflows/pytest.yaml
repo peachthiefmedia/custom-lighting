@@ -65,4 +65,4 @@ jobs:
             --cov-report=xml \
             -o console_output_style=count \
             -p no:sugar \
-            tests/components/adaptive_lighting
+            tests/components/custom_lighting

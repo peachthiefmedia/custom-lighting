@@ -6,7 +6,7 @@ apply:
       description: The `entity_id` of the switch with the settings to apply. 📝
       selector:
         entity:
-          integration: adaptive_lighting
+          integration: custom_lighting
           domain: switch
           multiple: false
     lights:
@@ -47,7 +47,7 @@ set_manual_control:
       description: The `entity_id` of the switch in which to (un)mark the light as being `manually controlled`. 📝
       selector:
         entity:
-          integration: adaptive_lighting
+          integration: custom_lighting
           domain: switch
           multiple: false
     lights:

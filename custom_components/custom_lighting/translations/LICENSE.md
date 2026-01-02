@@ -1,4 +1,4 @@
-This license **only** applies to all files in `custom_components/adaptive_lighting/translations/` in the Adaptive Lighting repository.
+This license **only** applies to all files in `custom_components/custom_lighting/translations/` in the Custom Lighting repository.
 For these translations we wave copyright and related rights through the CC0 1.0 Universal license.
 
 # Creative Commons CC0 1.0 Universal

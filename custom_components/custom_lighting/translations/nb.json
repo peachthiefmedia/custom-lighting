@@ -18,7 +18,7 @@
     "step": {
       "init": {
         "title": "Adaptiv Belysning Innstillinger",
-        "description": "Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert adaptive_lighting i din YAML konfigurasjon.",
+        "description": "Alle innstillinger for en adaptiv belysning konfigurasjon. Innstillingene er identiske med innstillingene for YAML konfigurasjon. Ingen innstillinger vises dersom du har definert custom_lighting i din YAML konfigurasjon.",
         "data": {
           "lights": "Lys / Lyskilder",
           "initial_transition": "'initial_transition': overgangen (i sekunder) når lysene skrus av eller på - eller når 'sleep_state' endres",
