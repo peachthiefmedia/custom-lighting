@@ -1,4 +1,4 @@
-"""Helper functions for the Adaptive Lighting custom components."""
+"""Helper functions for the Custom Lighting custom components."""
 
 from __future__ import annotations
 
