@@ -59,13 +59,21 @@ class SunEvents:
     sunset_offset: datetime.timedelta = datetime.timedelta()
     timezone: datetime.tzinfo = UTC
     # Optional: use four user-defined time points during the day for linear
+    # Optional: use six user-defined time points during the day for linear
     # interpolation of brightness and color temperature.
     # When provided and `use_time_points` is True, Adaptive Lighting will
     # interpolate between these points instead of using sunrise/sunset logic.
     use_time_points: bool = False
-    time_points: tuple[datetime.time, datetime.time, datetime.time, datetime.time] | None = None
-    time_brightness: tuple[int, int, int, int] | None = None
-    time_color_temp: tuple[int, int, int, int] | None = None
+    time_points: tuple[
+        datetime.time,
+        datetime.time,
+        datetime.time,
+        datetime.time,
+        datetime.time,
+        datetime.time,
+    ] | None = None
+    time_brightness: tuple[int, int, int, int, int, int] | None = None
+    time_color_temp: tuple[int, int, int, int, int, int] | None = None
 
     def sunrise(self, dt: datetime.date) -> datetime.datetime:
         """Return the (adjusted) sunrise time for the given datetime."""
@@ -431,10 +439,17 @@ class SunLightSettings:
     def _interpolate_from_time_points(
         self,
         dt: datetime.datetime,
-        times: tuple[datetime.time, datetime.time, datetime.time, datetime.time],
-        values: tuple[float, float, float, float],
+        times: tuple[
+            datetime.time,
+            datetime.time,
+            datetime.time,
+            datetime.time,
+            datetime.time,
+            datetime.time,
+        ],
+        values: tuple[float, float, float, float, float, float],
     ) -> float:
-        """Interpolate a value from four daily time points (linear).
+        """Interpolate a value from six daily time points (linear).
 
         This handles wrap-around by considering the previous and next day
         occurrences of the points.
@@ -443,7 +458,7 @@ class SunLightSettings:
         pts: list[tuple[float, float]] = []
         for day_offset in (-1, 0, 1):
             date = (dt + timedelta(days=day_offset)).date()
-            for i in range(4):
+            for i in range(6):
                 ts = self.sun._replace_time(date, times[i]).timestamp()
                 pts.append((ts, float(values[i])))
         pts.sort(key=lambda x: x[0])

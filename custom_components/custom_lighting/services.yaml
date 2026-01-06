@@ -153,72 +153,103 @@ change_switch_settings:
       example: 0
       selector:
         boolean: null
-    sleep_brightness:
-      description: Brightness percentage of lights in sleep mode. 😴
+    # Time point based interpolation (six points)
+    use_time_points:
+      description: Use the six configured daily time points for linear interpolation of brightness and color temperature.
       required: false
-      example: 1
+      example: false
+      selector:
+        boolean: null
+    time_point_1:
+      description: First time point (HH:MM:SS) for interpolation.
+      required: false
+      selector:
+        time: null
+    time_point_2:
+      description: Second time point (HH:MM:SS) for interpolation.
+      required: false
+      selector:
+        time: null
+    time_point_3:
+      description: Third time point (HH:MM:SS) for interpolation.
+      required: false
+      selector:
+        time: null
+    time_point_4:
+      description: Fourth time point (HH:MM:SS) for interpolation.
+      required: false
+      selector:
+        time: null
+    time_point_5:
+      description: Fifth time point (HH:MM:SS) for interpolation.
+      required: false
+      selector:
+        time: null
+    time_point_6:
+      description: Sixth time point (HH:MM:SS) for interpolation.
+      required: false
+      selector:
+        time: null
+    time_brightness_1:
+      description: Brightness (%) at time point 1.
+      required: false
       selector:
         text: null
-    sleep_rgb_or_color_temp:
-      description: Use either `"rgb_color"` or `"color_temp"` in sleep mode. 🌙
+    time_brightness_2:
+      description: Brightness (%) at time point 2.
       required: false
-      example: color_temp
-      selector:
-        select:
-          options:
-          - rgb_color
-          - color_temp
-    sleep_rgb_color:
-      description: RGB color in sleep mode (used when `sleep_rgb_or_color_temp` is "rgb_color"). 🌈
-      required: false
-      selector:
-        color_rgb: null
-    sleep_color_temp:
-      description: Color temperature in sleep mode (used when `sleep_rgb_or_color_temp` is `color_temp`) in Kelvin. 😴
-      required: false
-      example: 1000
       selector:
         text: null
-    sunrise_offset:
-      description: Adjust sunrise time with a positive or negative offset in seconds. ⏰
-      required: false
-      example: 0
-      selector:
-        number:
-          min: 0
-          max: 86300
-    sunrise_time:
-      description: Set a fixed time (HH:MM:SS) for sunrise. 🌅
-      required: false
-      example: ''
-      selector:
-        time: null
-    sunset_offset:
-      description: Adjust sunset time with a positive or negative offset in seconds. ⏰
-      required: false
-      example: ''
-      selector:
-        number:
-          min: 0
-          max: 86300
-    sunset_time:
-      description: Set a fixed time (HH:MM:SS) for sunset. 🌇
-      example: ''
+    time_brightness_3:
+      description: Brightness (%) at time point 3.
       required: false
       selector:
-        time: null
-    max_sunrise_time:
-      description: Set the latest virtual sunrise time (HH:MM:SS), allowing for earlier sunrises. 🌅
-      example: ''
+        text: null
+    time_brightness_4:
+      description: Brightness (%) at time point 4.
       required: false
       selector:
-        time: null
-    min_sunset_time:
-      description: Set the earliest virtual sunset time (HH:MM:SS), allowing for later sunsets. 🌇
-      example: ''
+        text: null
+    time_brightness_5:
+      description: Brightness (%) at time point 5.
       required: false
       selector:
-        time: null
+        text: null
+    time_brightness_6:
+      description: Brightness (%) at time point 6.
+      required: false
+      selector:
+        text: null
+    time_color_temp_1:
+      description: Color temperature (K) at time point 1.
+      required: false
+      selector:
+        text: null
+    time_color_temp_2:
+      description: Color temperature (K) at time point 2.
+      required: false
+      selector:
+        text: null
+    time_color_temp_3:
+      description: Color temperature (K) at time point 3.
+      required: false
+      selector:
+        text: null
+    time_color_temp_4:
+      description: Color temperature (K) at time point 4.
+      required: false
+      selector:
+        text: null
+    time_color_temp_5:
+      description: Color temperature (K) at time point 5.
+      required: false
+      selector:
+        text: null
+    time_color_temp_6:
+      description: Color temperature (K) at time point 6.
+      required: false
+      selector:
+        text: null
     take_over_control:
       description: Pause adaptation of individual lights and hand over (manual) control to other sources that issue `light.turn_on` calls for lights that are on. 🔒
       required: false

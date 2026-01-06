@@ -197,40 +197,55 @@ DOCS[CONF_BRIGHTNESS_MODE_TIME_LIGHT] = (
 )
 
 # Optional four time points during the day for linear interpolation
+# Optional N time points during the day for linear interpolation (now 6)
 CONF_USE_TIME_POINTS, DEFAULT_USE_TIME_POINTS = "use_time_points", False
-DOCS[CONF_USE_TIME_POINTS] = "Use four user-defined time points for interpolation. ⏱️"
+DOCS[CONF_USE_TIME_POINTS] = "Use user-defined daily time points for interpolation. ⏱️"
 
 CONF_TIME_POINT_1 = "time_point_1"
 CONF_TIME_POINT_2 = "time_point_2"
 CONF_TIME_POINT_3 = "time_point_3"
 CONF_TIME_POINT_4 = "time_point_4"
-DOCS[CONF_TIME_POINT_1] = "First time point (HH:MM:SS) for interpolation."
-DOCS[CONF_TIME_POINT_2] = "Second time point (HH:MM:SS) for interpolation."
-DOCS[CONF_TIME_POINT_3] = "Third time point (HH:MM:SS) for interpolation."
-DOCS[CONF_TIME_POINT_4] = "Fourth time point (HH:MM:SS) for interpolation."
+CONF_TIME_POINT_5 = "time_point_5"
+CONF_TIME_POINT_6 = "time_point_6"
+DOCS[CONF_TIME_POINT_1] = "Time point 1 (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_2] = "Time point 2 (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_3] = "Time point 3 (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_4] = "Time point 4 (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_5] = "Time point 5 (HH:MM:SS) for interpolation."
+DOCS[CONF_TIME_POINT_6] = "Time point 6 (HH:MM:SS) for interpolation."
 
 CONF_TIME_BRIGHTNESS_1 = "time_brightness_1"
 CONF_TIME_BRIGHTNESS_2 = "time_brightness_2"
 CONF_TIME_BRIGHTNESS_3 = "time_brightness_3"
 CONF_TIME_BRIGHTNESS_4 = "time_brightness_4"
+CONF_TIME_BRIGHTNESS_5 = "time_brightness_5"
+CONF_TIME_BRIGHTNESS_6 = "time_brightness_6"
 DEFAULT_TIME_BRIGHTNESS = 50
 DOCS[CONF_TIME_BRIGHTNESS_1] = "Brightness (%) at time point 1."
 DOCS[CONF_TIME_BRIGHTNESS_2] = "Brightness (%) at time point 2."
 DOCS[CONF_TIME_BRIGHTNESS_3] = "Brightness (%) at time point 3."
 DOCS[CONF_TIME_BRIGHTNESS_4] = "Brightness (%) at time point 4."
+DOCS[CONF_TIME_BRIGHTNESS_5] = "Brightness (%) at time point 5."
+DOCS[CONF_TIME_BRIGHTNESS_6] = "Brightness (%) at time point 6."
 
 CONF_TIME_COLOR_TEMP_1 = "time_color_temp_1"
 CONF_TIME_COLOR_TEMP_2 = "time_color_temp_2"
 CONF_TIME_COLOR_TEMP_3 = "time_color_temp_3"
 CONF_TIME_COLOR_TEMP_4 = "time_color_temp_4"
+CONF_TIME_COLOR_TEMP_5 = "time_color_temp_5"
+CONF_TIME_COLOR_TEMP_6 = "time_color_temp_6"
 DEFAULT_TIME_COLOR_TEMP_1 = 2000
 DEFAULT_TIME_COLOR_TEMP_2 = 3000
 DEFAULT_TIME_COLOR_TEMP_3 = 4500
 DEFAULT_TIME_COLOR_TEMP_4 = 5500
+DEFAULT_TIME_COLOR_TEMP_5 = 6000
+DEFAULT_TIME_COLOR_TEMP_6 = 6500
 DOCS[CONF_TIME_COLOR_TEMP_1] = "Color temperature (K) at time point 1."
 DOCS[CONF_TIME_COLOR_TEMP_2] = "Color temperature (K) at time point 2."
 DOCS[CONF_TIME_COLOR_TEMP_3] = "Color temperature (K) at time point 3."
 DOCS[CONF_TIME_COLOR_TEMP_4] = "Color temperature (K) at time point 4."
+DOCS[CONF_TIME_COLOR_TEMP_5] = "Color temperature (K) at time point 5."
+DOCS[CONF_TIME_COLOR_TEMP_6] = "Color temperature (K) at time point 6."
 
 CONF_TAKE_OVER_CONTROL, DEFAULT_TAKE_OVER_CONTROL = "take_over_control", True
 DOCS[CONF_TAKE_OVER_CONTROL] = (
