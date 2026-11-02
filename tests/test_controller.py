@@ -160,6 +160,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         switch.manager = manager
         switch.is_on = True
         switch.initial_transition = 1
+        switch._transition = 25
         switch.create_context = lambda which: which
         switch._update_attrs_and_maybe_adapt_lights = AsyncMock()
         manager.set_manual_control_attributes("light.one")
@@ -168,6 +169,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(manager.manual_control["light.one"], flags.NONE)
         self.assertEqual(manager.manual_control["light.two"], flags.ALL)
         self.assertEqual(switch._update_attrs_and_maybe_adapt_lights.call_args.kwargs["lights"], ["light.one"])
+        self.assertEqual(switch._update_attrs_and_maybe_adapt_lights.call_args.kwargs["transition"], 25)
         switch.is_on = False
         switch._update_attrs_and_maybe_adapt_lights.reset_mock()
         await namespace["async_set_mode"](manager.hass, switch, "light.one", "Schedule")

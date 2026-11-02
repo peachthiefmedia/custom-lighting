@@ -150,7 +150,8 @@ Under the integration's **Configure** menu:
 - **Timing and device handling** controls transitions, command splitting and detection.
 
 Defaults: update every 30 seconds, with a 25-second transition where supported,
-and a 1-second transition on activation or resume. The backend aims for the value
+and a 1-second transition on activation. Resuming Schedule mode uses the normal
+configured transition (25 seconds by default). The backend aims for the value
 at the end of each transition. Lights without transition support receive periodic
 small updates instead. Hardware resolution, reporting and transition support affect
 how smooth the physical result is.
@@ -176,6 +177,7 @@ mode, and the profile switches control enablement and adapted attributes.
 The **Resume all schedules** panel button and `custom_lighting.resume_schedule`
 action return every controlled light to Schedule mode. Current targets are applied
 to lights that are on; off lights stay off and paused profiles remain paused.
+Lights already in Schedule mode keep their existing fades and receive no reset commands.
 There are no temporary settings overrides.
 
 Use this action in an automation to reset manual overrides periodically:

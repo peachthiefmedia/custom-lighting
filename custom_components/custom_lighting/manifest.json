@@ -8,5 +8,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/peachthiefmedia/custom-lighting/issues",
   "requirements": ["ulid-transform==2.2.9"],
-  "version": "0.3.0"
+  "version": "0.3.1"
 }

@@ -2,6 +2,7 @@
 
 import asyncio
 from homeassistant.components.select import SelectEntity
+from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
@@ -15,13 +16,16 @@ async def async_resume_all(hass):
     switches = [profile["switch"] for profile in hass.data.get(DOMAIN, {}).values()
                 if isinstance(profile, dict) and "switch" in profile
                 and not getattr(profile["switch"], "_unloading", False)]
-    for switch in switches:
-        switch.manager.reset(*switch.lights)
+    resuming = [(switch, [light for light in switch.lights
+                         if switch.manager.manual_control.get(light)]) for switch in switches]
+    for switch, lights in resuming:
+        if lights:
+            switch.manager.reset(*lights)
     results = await asyncio.gather(*(
         switch._update_attrs_and_maybe_adapt_lights(
             context=switch.create_context("resume_all"),
-            lights=switch.lights, transition=switch.initial_transition,
-        ) for switch in switches if switch.is_on
+            lights=lights, transition=switch._transition,
+        ) for switch, lights in resuming if switch.is_on and lights
     ), return_exceptions=True)
     failures = [str(result) for result in results if isinstance(result, Exception)]
     if failures:
@@ -40,7 +44,7 @@ async def async_set_mode(hass, switch, light, mode):
         if switch.is_on:
             await switch._update_attrs_and_maybe_adapt_lights(
                 context=switch.create_context("resume"),
-                lights=[light], transition=switch.initial_transition,
+                lights=[light], transition=switch._transition,
             )
 
 
@@ -76,6 +80,7 @@ class LightScheduleMode(SelectEntity):
         return {"light": self._light}
 
     async def async_added_to_hass(self):
+        @callback
         def changed(light):
             if light == self._light:
                 self.async_write_ha_state()
