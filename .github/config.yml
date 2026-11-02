@@ -20,8 +20,8 @@ newIssueWelcomeComment: >
     - "Status" labels will show if this is ready to be worked on, blocked, or in progress.
     - "Need" labels will indicate if additional input or analysis is required.
 
-  Finally, remember to use [the discussion tab](https://github.com/basnijholt/adaptive-lighting/discussions) if you just need general
-  support.
+  Documentation and support for this fork are in
+  [Custom Lighting](https://github.com/peachthiefmedia/custom-lighting#readme).
 
 # Configuration for new-pr-welcome - https://github.com/behaviorbot/new-pr-welcome
 # Comment to be posted to on PRs from first time contributors in your repository

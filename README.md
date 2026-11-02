@@ -1,12 +1,60 @@
 # Custom Lighting
 
-Continuously interpolated daily brightness and colour-temperature curves, with
-Adaptive Lighting's activation, override detection and device-handling controller.
+Schedule brightness and white colour temperature with a visual 24-hour curve
+editor. Custom Lighting retains Adaptive Lighting's light-activation, manual
+override and device-handling controller; it no longer uses its solar scheduler.
+
+## Supported features
+
+| Feature | Current behaviour |
+| --- | --- |
+| Schedule | A repeating daily profile with independent brightness and temperature curves |
+| Editing | Drag points, enter exact values, add/remove points, undo, save and revert |
+| Interpolation | Smooth curves or linear ramps, including across midnight |
+| Lights | Dimmable lights; tunable-white lights; approximate white through RGB on colour-capable lights |
+| Profiles | Multiple profiles, with each light assigned to one profile |
+| Manual control | Per-light Manual/Schedule modes, preserved across off/on cycles and restarts |
+| Activation | Apply the current targets when a scheduled light turns on |
+| Device handling | Capability/range checks, supported transitions and optional split commands |
+
+On/off-only lights cannot follow brightness or temperature curves. The integration
+does not automatically switch lights on or off. The editor uses Kelvin values for
+white colour temperature; it is not an RGB colour or effect-sequence editor.
+
+## What changed from the old fork
+
+- The graph replaces the six fixed time-point fields.
+- Solar position, sunrise/sunset settings and solar brightness modes are removed.
+- Sleep-mode settings and the inherited Adaptive Lighting configuration guide are removed.
+- The custom `apply`, `set_manual_control` and `change_switch_settings` actions are
+  removed. Use the graph, normal HA select entities and profile switches instead.
+- Temporary settings overrides are removed; device options are saved through Configure.
+- There is no YAML configuration or automatic migration from previous entries.
+
+The schedule currently repeats every day. Weekday/weekend schedules, HCL scenarios
+and lux/daylight compensation are not implemented.
 
 ## Install and compare
 
 Targets Home Assistant **2026.10.4 or later**. This is a breaking update: existing
 six-point settings and YAML configuration are not migrated.
+
+### HACS
+
+Add `https://github.com/peachthiefmedia/custom-lighting` as an **Integration** in
+[HACS custom repositories](https://www.hacs.dev/docs/faq/custom_repositories/),
+then download Custom Lighting. If it is already installed, update or redownload
+this repository in HACS.
+
+For the current test update, use the repository's **main** branch; no new release
+tag has been published. Restart HA after downloading, remove the previous
+Custom Lighting entry, then add a fresh entry and select its lights.
+
+This README is also the integration's HACS information page: `hacs.json` sets
+`render_readme: true`. There is no separate inherited Adaptive Lighting information
+page to configure.
+
+### Manual installation and setup
 
 1. Keep a copy of your current integration folder and settings for your comparison.
 2. Copy `custom_components/custom_lighting` into Home Assistant's
@@ -118,6 +166,14 @@ data:
 Use `option: Manual` to pause a light. Use the standard `switch.turn_on` and
 `switch.turn_off` actions for profile switches. Timing and device options are
 changed persistently through Configure.
+
+## Help and issue reports
+
+Use this repository's [issues](https://github.com/peachthiefmedia/custom-lighting/issues)
+for this fork. Include the HA version, Custom Lighting version or commit, light
+integration and model, relevant curve/device settings, and steps to reproduce.
+For the editor, include any browser console error. The controls and configuration
+of upstream Adaptive Lighting do not describe this version of Custom Lighting.
 
 ## Verification
 

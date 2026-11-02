@@ -1,63 +1,41 @@
 ---
 name: Bug Report
-about: Report a bug in adaptive-lighting.
+about: Report a bug in Custom Lighting.
 title: ''
-labels: kind/bug, kind/feature, need/triage
+labels: kind/bug, need/triage
 assignees: ''
-
 ---
 
-# Home Assistant Adaptive Lighting Issue Template
+Please check the [Custom Lighting README](https://github.com/peachthiefmedia/custom-lighting#readme)
+and [existing issues](https://github.com/peachthiefmedia/custom-lighting/issues) first.
+This fork uses a graph editor and per-light Manual/Schedule controls; upstream
+Adaptive Lighting configuration and actions do not apply.
 
-## Bug Reports
+## Versions
 
-If you need help with using or configuring Adaptive Lighting, please [open a Q&A discussion thread here](https://github.com/basnijholt/adaptive-lighting/discussions/new?category=q-a) instead.
+- Home Assistant version:
+- Custom Lighting version or commit:
+- Browser/app and version, if this is an editor issue:
 
-### Before submitting a bug report, please follow these troubleshooting steps:
+## Lights and profile
 
-Please confirm that you have completed the following steps:
+- Light integration and device model:
+- Individual lights or a light group:
+- Profile enabled or paused:
+- Affected light's Manual/Schedule mode:
+- Relevant curve, transition and device-handling settings:
 
-- [ ] I have updated to the [latest Adaptive Lighting version](https://github.com/basnijholt/adaptive-lighting/releases) available in [HACS](https://hacs.xyz/).
-- [ ] I have reviewed the [Troubleshooting Section](https://github.com/basnijholt/adaptive-lighting#sos-troubleshooting) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
-- [ ] (If using Zigbee2MQTT) I have read the [Zigbee2MQTT troubleshooting guide](https://github.com/basnijholt/adaptive-lighting#zigbee2mqtt) in the [README](https://github.com/basnijholt/adaptive-lighting#readme).
-- [ ] I have checked the [V2 Roadmap](https://github.com/basnijholt/adaptive-lighting/discussions/291) and [open issues](https://github.com/basnijholt/adaptive-lighting/issues) to ensure my issue isn't a duplicate.
+## Problem
 
+What happened, and what did you expect?
 
-### Required information for bug reports:
+## Reproduction
 
-Please include the following information in your issue.
+1.
+2.
+3.
 
-*Issues missing this information may not be addressed.*
+## Logs or screenshots
 
-1.  **Debug logs** captured while the issue occurred. [See here for instructions on enabling debug logging](https://github.com/basnijholt/adaptive-lighting#troubleshooting):
-
-```
-
-```
-
-2.  [Your Adaptive Lighting configuration](https://github.com/basnijholt/adaptive-lighting#gear-configuration):
-
-```
-
-```
-
-3.  (If using Zigbee2MQTT), provide your configuration files (**remove all personal information before posting**):
-    - `devices.yaml`
-    - `groups.yaml`
-    - `configuration.yaml` ⚠️; **Warning** _**REMOVE ALL of the PERSONAL INFORMATION BELOW before posting**_ ⚠️;
-      - mqtt: `server`:
-      - mqtt: `user`:
-      - mqtt: `password`:
-      - advanced: `pan_id`:
-      - advanced: `network_key`:
-      - anything in `log_syslog` if you use this
-    - Brand and model number of problematic light(s)
-```
-
-```
-
-4.  Describe the bug and how to reproduce it:
-
-
-
-5. Steps to reproduce the behavior:
+Include relevant Custom Lighting debug logs, or browser console errors for an
+editor problem. Screenshots of the curve and device settings can help.
