@@ -20,6 +20,7 @@ from homeassistant.components.light import (
     ATTR_RGBW_COLOR,
     ATTR_RGBWW_COLOR,
     ATTR_TRANSITION,
+    ATTR_WHITE,
     ATTR_XY_COLOR,
 )
 from homeassistant.const import ATTR_ENTITY_ID
@@ -28,6 +29,7 @@ from homeassistant.core import Context, HomeAssistant, State
 _LOGGER = logging.getLogger(__name__)
 
 COLOR_ATTRS = {  # Should ATTR_PROFILE be in here?
+    ATTR_WHITE,
     ATTR_COLOR_NAME,
     ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
@@ -181,7 +183,6 @@ class AdaptationData:
     context: Context
     sleep_time: float
     service_call_datas: AsyncGenerator[ServiceData]
-    force: bool
     max_length: int
     attributes: LightControlAttributes
     initial_sleep: bool = False
@@ -197,7 +198,6 @@ class AdaptationData:
             f"entity_id={self.entity_id}, "
             f"context_id={self.context.id}, "
             f"sleep_time={self.sleep_time}, "
-            f"force={self.force}, "
             f"max_length={self.max_length}, "
             f"attributes={self.attributes}, "
             f"initial_sleep={self.initial_sleep}"
@@ -239,7 +239,6 @@ def prepare_adaptation_data(
     service_data: ServiceData,
     split: bool,
     filter_by_state: bool,
-    force: bool,
 ) -> AdaptationData:
     """Prepares a data object carrying all data required to execute an adaptation."""
     _LOGGER.debug(
@@ -270,23 +269,9 @@ def prepare_adaptation_data(
         context=context,
         sleep_time=sleep_time,
         service_call_datas=service_data_iterator,
-        force=force,
         max_length=service_datas_length,
         attributes=attributes,
     )
-
-
-def manual_control_event_attribute_to_flags(
-    manual_control_attribute: bool | str,
-) -> LightControlAttributes:
-    """Convert manual control event data to light control attributes."""
-    if isinstance(manual_control_attribute, bool) and manual_control_attribute:
-        return LightControlAttributes.ALL
-    if manual_control_attribute == "brightness":
-        return LightControlAttributes.BRIGHTNESS
-    if manual_control_attribute == "color":
-        return LightControlAttributes.COLOR
-    return LightControlAttributes.NONE
 
 
 def has_brightness_attribute(

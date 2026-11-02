@@ -4,7 +4,8 @@ import logging
 from collections.abc import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.target import TargetSelection, async_extract_referenced_entity_ids
 from homeassistant.util.read_only_dict import ReadOnlyDict
 
 from .adaptation_utils import ServiceData
@@ -12,23 +13,16 @@ from .adaptation_utils import ServiceData
 _LOGGER = logging.getLogger(__name__)
 
 
-def area_entities(hass: HomeAssistant, area_id: str):
-    """Get all entities linked to an area."""
-    ent_reg = entity_registry.async_get(hass)
-    entity_ids = [
-        entry.entity_id
-        for entry in entity_registry.async_entries_for_area(ent_reg, area_id)
-    ]
-    dev_reg = device_registry.async_get(hass)
-    entity_ids.extend(
-        [
-            entity.entity_id
-            for device in device_registry.async_entries_for_area(dev_reg, area_id)
-            for entity in entity_registry.async_entries_for_device(ent_reg, device.id)
-            if entity.area_id is None
-        ],
+class SplitCallError(HomeAssistantError):
+    """Partitions were attempted; run only the narrowed original before raising."""
+
+
+def target_entities(hass: HomeAssistant, service_data: ServiceData) -> set[str]:
+    """Resolve all HA targets, leaving group expansion to the light service."""
+    selected = async_extract_referenced_entity_ids(
+        hass, TargetSelection(service_data), expand_group=False,
     )
-    return entity_ids
+    return selected.referenced | selected.indirectly_referenced
 
 
 def setup_service_call_interceptor(
@@ -43,12 +37,8 @@ def setup_service_call_interceptor(
     (the data of the service call is read-only) before the service call is executed.
     """
     try:
-        # HACK: Access protected attribute of HA service registry.
-        # This is necessary to replace a registered service handler with our
-        # proxy handler to intercept calls.
-        registered_services = (
-            hass.services._services  # pylint: disable=protected-access  # type: ignore[attr-defined]
-        )
+        # Public registry snapshot; replacement still needs a proxy around HA's handler.
+        registered_services = {domain: hass.services.async_services_for_domain(domain)}
     except AttributeError as error:
         msg = (
             "Intercept failed because registered services are no longer"
@@ -61,19 +51,25 @@ def setup_service_call_interceptor(
         raise RuntimeError(msg)
 
     existing_service = registered_services[domain][service]
+    active = True
 
-    async def service_func_proxy(call: ServiceCall) -> None:
+    async def service_func_proxy(call: ServiceCall):
+        deferred_error = None
         try:
             # Convert read-only data to writeable dictionary for modification by interceptor
             data = dict(call.data)
 
             # Call interceptor
-            result = intercept_func(call, data)
+            result = intercept_func(call, data) if active else None
             if result is not None:
                 await result
 
             # Convert data back to read-only
             call.data = ReadOnlyDict(data)
+        except SplitCallError as error:
+            # Other partitions have already been attempted. Never replay them.
+            call.data = ReadOnlyDict(data)
+            deferred_error = error
         except Exception:
             # Blindly catch all exceptions to avoid breaking light.turn_on
             _LOGGER.exception(
@@ -85,24 +81,36 @@ def setup_service_call_interceptor(
 
         target = existing_service.job.target
         if asyncio.iscoroutinefunction(target):
-            await target(call)
+            response = await target(call)
         else:
-            target(call)
+            response = target(call)
+        if deferred_error is not None:
+            raise deferred_error
+        return response
 
     hass.services.async_register(
         domain,
         service,
         service_func_proxy,
         existing_service.schema,
+        supports_response=existing_service.supports_response,
+        description_placeholders=existing_service.description_placeholders,
     )
 
     def remove() -> None:
         # Remove the interceptor by reinstalling the original service handler
+        nonlocal active
+        active = False
+        current = hass.services.async_services_for_domain(domain).get(service)
+        if current is None or current.job.target is not service_func_proxy:
+            return
         hass.services.async_register(
             domain,
             service,
             existing_service.job.target,
             existing_service.schema,
+            supports_response=existing_service.supports_response,
+            description_placeholders=existing_service.description_placeholders,
         )
 
     return remove

@@ -1,12 +1,11 @@
-on:
-  push:
-    branches: [main]
-name: TOC Generator
+# Inherited workflow retired: The concise README does not use an automatically generated table of contents.
+name: Retired toc.yaml
+on: workflow_dispatch
+permissions:
+  contents: read
 jobs:
-  generateTOC:
-    name: TOC Generator
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: technote-space/toc-generator@v4
-        with:
-          TOC_TITLE: ""
+      - run: echo "This inherited workflow is retired."

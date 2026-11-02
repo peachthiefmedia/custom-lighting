@@ -1,68 +1,42 @@
-name: pytest
-
+name: Test scheduled lighting
 on:
   push:
-    branches: [master]
+    branches: [main, master]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  pytest:
-    name: Run pytest
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - core-version: "2024.12.5"
-            python-version: "3.12"
-          - core-version: "2025.1.4"
-            python-version: "3.12"
-          - core-version: "2025.2.5"
-            python-version: "3.13"
-          - core-version: "2025.3.4"
-            python-version: "3.13"
-          - core-version: "2025.4.4"
-            python-version: "3.13"
-          - core-version: "2025.5.3"
-            python-version: "3.13"
-          - core-version: "2025.6.3"
-            python-version: "3.13"
-          - core-version: "2025.7.4"
-            python-version: "3.13"
-          - core-version: "2025.8.3"
-            python-version: "3.13"
-          - core-version: "2025.9.4"
-            python-version: "3.13"
-          - core-version: "2025.10.4"
-            python-version: "3.13"
-          - core-version: "2025.11.3"
-            python-version: "3.13"
-          - core-version: "dev"
-            python-version: "3.13"
+  unit:
+    runs-on: ubuntu-latest
     steps:
-      - name: Check out code from GitHub
-        uses: actions/checkout@v6
-
-      - name: Install Home Assistant
-        uses: ./.github/workflows/install_dependencies
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
-          core-version: ${{ matrix.core-version }}
+          python-version: "3.14"
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q custom_components/custom_lighting
 
-      - name: Run pytest
-        timeout-minutes: 60
-        run: |
-          export PYTHONPATH=${PYTHONPATH}:${PWD}
-          source .venv/bin/activate
-          cd core
-          python3 -X dev -m pytest \
-            -vvv \
-            -qq \
-            --timeout=9 \
-            --durations=10 \
-            --cov="homeassistant" \
-            --cov-report=xml \
-            -o console_output_style=count \
-            -p no:sugar \
-            tests/components/custom_lighting
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - run: python -m pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/browser_check.py
+
+  home-assistant-import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Import integration inside the exact target HA image
+        run: >-
+          docker run --rm --entrypoint python
+          -v "$PWD:/workspace:ro" -w /workspace
+          ghcr.io/home-assistant/home-assistant:2026.10.4
+          -c 'import importlib; [importlib.import_module("custom_components.custom_lighting" + suffix) for suffix in ("", ".switch", ".select", ".config_flow", ".frontend")]'

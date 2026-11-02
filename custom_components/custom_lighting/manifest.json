@@ -1,12 +1,12 @@
 {
   "domain": "custom_lighting",
   "name": "Custom Lighting",
-  "codeowners": ["@basnijholt", "@RubenKelevra", "@th3w1zard1", "@protyposis"],
+  "codeowners": ["@peachthiefmedia"],
   "config_flow": true,
-  "dependencies": ["light"],
+  "dependencies": ["frontend", "http", "light", "panel_custom", "websocket_api"],
   "documentation": "https://github.com/peachthiefmedia/custom-lighting#readme",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/peachthiefmedia/custom-lighting/issues",
-  "requirements": ["ulid-transform"],
-  "version": "0.1"
+  "requirements": ["ulid-transform==2.2.9"],
+  "version": "0.2.0"
 }

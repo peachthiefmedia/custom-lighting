@@ -3,11 +3,40 @@
 from __future__ import annotations
 
 import base64
+from hashlib import sha256
 import math
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+
+def light_group_members(state) -> list[str] | None:
+    """Return actual light-group members, not a wrapper's source entity ID."""
+    members = state.attributes.get("entity_id")
+    if (state.attributes.get("is_hue_group", False)
+        or not isinstance(members, (list, tuple))
+        or not all(isinstance(member, str) and member.startswith("light.") for member in members)):
+        return None
+    return list(members)
+
+
+def expand_lights(hass: HomeAssistant, lights: list[str]) -> list[str]:
+    """Resolve nested HA light groups once, protecting against group cycles."""
+    pending = list(lights)
+    seen, result = set(), set()
+    while pending:
+        light = pending.pop()
+        if light in seen:
+            continue
+        seen.add(light)
+        state = hass.states.get(light)
+        members = light_group_members(state) if state else None
+        if members is not None:
+            pending.extend(members)
+        else:
+            result.add(light)
+    return sorted(result)
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -57,7 +86,7 @@ def int_to_base36(num: int) -> str:
 
 def short_hash(string: str, length: int = 4) -> str:
     """Create a hash of 'string' with length 'length'."""
-    return base64.b32encode(string.encode()).decode("utf-8").zfill(length)[:length]
+    return base64.b32encode(sha256(string.encode()).digest()).decode("ascii")[:length]
 
 
 def remove_vowels(input_str: str, length: int = 4) -> str:

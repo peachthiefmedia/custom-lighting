@@ -1,22 +1,11 @@
-name: Sync Main to Master
-
-on:
-  push:
-    branches:
-      - main
-
+# Inherited workflow retired: Automatic force-pushing of an upstream mirror is not used.
+name: Retired main-to-master-sync.yml
+on: workflow_dispatch
+permissions:
+  contents: read
 jobs:
-  sync:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
-      with:
-        ref: main
-        fetch-depth: 0
-
-    - name: Push changes to master
-      run: |
-        git checkout -b master
-        git push origin +master
+      - run: echo "This inherited workflow is retired."
