@@ -1,6 +1,8 @@
 # Custom Lighting
 
-Schedule brightness and white colour temperature with a visual 24-hour curve
+<img src="custom_components/custom_lighting/brand/icon.png" alt="Custom Lighting" width="96" height="96">
+
+Schedule brightness, RGB colour and white colour temperature with a visual 24-hour curve
 editor. Custom Lighting retains Adaptive Lighting's light-activation, manual
 override and device-handling controller; it no longer uses its solar scheduler.
 
@@ -8,18 +10,19 @@ override and device-handling controller; it no longer uses its solar scheduler.
 
 | Feature | Current behaviour |
 | --- | --- |
-| Schedule | A repeating daily profile with independent brightness and temperature curves |
+| Schedule | A repeating daily profile with shared brightness and colour points |
 | Editing | Drag points, enter exact values, add/remove points, undo, save and revert |
-| Interpolation | Smooth curves or linear ramps, including across midnight |
+| Interpolation | Smooth or linear brightness; linear temperature/RGB blends, including across midnight |
 | Lights | Dimmable lights; tunable-white lights; approximate white through RGB on colour-capable lights |
 | Profiles | Multiple profiles, with each light assigned to one profile |
 | Manual control | Per-light Manual/Schedule modes, preserved across off/on cycles and restarts |
+| Resume | One global action returns every controlled light to Schedule mode |
 | Activation | Apply the current targets when a scheduled light turns on |
 | Device handling | Capability/range checks, supported transitions and optional split commands |
 
 On/off-only lights cannot follow brightness or temperature curves. The integration
-does not automatically switch lights on or off. The editor uses Kelvin values for
-white colour temperature; it is not an RGB colour or effect-sequence editor.
+does not automatically switch lights on or off. White-only lights follow brightness
+during RGB sections; RGB colour requires a colour-capable light.
 
 ## What changed from the old fork
 
@@ -29,7 +32,7 @@ white colour temperature; it is not an RGB colour or effect-sequence editor.
 - The custom `apply`, `set_manual_control` and `change_switch_settings` actions are
   removed. Use the graph, normal HA select entities and profile switches instead.
 - Temporary settings overrides are removed; device options are saved through Configure.
-- There is no YAML configuration or automatic migration from previous entries.
+- There is no YAML configuration or migration from the original six-point entries.
 
 The schedule currently repeats every day. Weekday/weekend schedules, HCL scenarios
 and lux/daylight compensation are not implemented.
@@ -47,21 +50,27 @@ then download Custom Lighting. If it is already installed, update or redownload
 this repository in HACS.
 
 For the current test update, use the repository's **main** branch; no new release
-tag has been published. Restart HA after downloading, remove the previous
-Custom Lighting entry, then add a fresh entry and select its lights.
+tag has been published. Restart HA after downloading and refresh your browser.
+When upgrading from the original six-point fork, remove its previous entry and
+add a fresh entry. Existing 0.2 profiles can be kept.
 
 This README is also the integration's HACS information page: `hacs.json` sets
 `render_readme: true`. There is no separate inherited Adaptive Lighting information
 page to configure.
+
+The integration includes local brand icons for Home Assistant. HACS on HA 2026.10
+may still show its placeholder due to its upstream image lookup limitation;
+see [HACS issue 5402](https://github.com/hacs/integration/issues/5402).
 
 ### Manual installation and setup
 
 1. Keep a copy of your current integration folder and settings for your comparison.
 2. Copy `custom_components/custom_lighting` into Home Assistant's
    `config/custom_components` directory.
-3. Restart Home Assistant. Remove the previous Custom Lighting entry in
+3. Restart Home Assistant. For an original six-point entry, remove it in
    **Settings → Devices & services**, then add a fresh **Custom Lighting** entry.
-4. Choose a profile name and lights.
+   Keep existing 0.2 profiles.
+4. For a new entry, choose a profile name and lights.
 5. Open **Lighting** in the sidebar. Refresh the browser if the panel is not visible.
 
 Light groups are resolved when the profile loads. Reload the integration after
@@ -78,10 +87,12 @@ enabling the other for the same lights. Two active controllers can fight each ot
 
 ## Curve editor
 
-Brightness and temperature have **independent points** on two aligned daily charts.
+Brightness and colour share points on one daily chart. The coloured strip previews
+the colour schedule. Select a point to choose Kelvin temperature or RGB using a
+colour picker or hex value.
 
-- Drag a point to change its time and value; dragging time snaps to five minutes.
-- Use the fields below a chart for exact minute and value input.
+- Drag a point to change its time and value; times snap to 15-minute increments.
+- Use the fields below the chart for time, brightness and colour input.
 - Add points with **Add point** or double-click a chart.
 - Remove the selected point with **Remove selected** or Delete.
 - Arrow keys move a focused point; Shift increases the value step.
@@ -89,13 +100,22 @@ Brightness and temperature have **independent points** on two aligned daily char
 - **Save curve** stores the draft and applies it to scheduled lights without reloading.
 - Concurrent edits are detected: a stale browser cannot overwrite a newer saved curve.
 
-Each curve accepts 2–48 distinct times from 00:00 through 23:59.
+Each schedule accepts 2–96 distinct times from 00:00 through 23:59.
+New or edited times use 15-minute increments, ending at 23:45; existing saved
+times are retained until edited. Interpolation continues between those points.
 Brightness is 1–100%; temperature is 1000–10000 K and is clamped to each light's
 reported limits when commands are sent. Brightness never schedules a light off.
 
-**Smooth** uses periodic monotone cubic Hermite interpolation (PCHIP), with no
-overshoot between points. **Linear ramps** interpolate directly between points.
-Both wrap across midnight. The editor and backend use the same calculation.
+For brightness, **Smooth** uses periodic monotone cubic Hermite interpolation
+(PCHIP), with no overshoot; **Linear ramps** interpolate directly between points.
+Between two temperature points, Kelvin is interpolated and sent natively where
+supported. Sections with an RGB endpoint blend RGB channels, converting any
+temperature endpoint to approximate RGB. All sections wrap across midnight.
+The editor and backend use the same calculation.
+
+Existing 0.2 curves are converted using the union of their brightness and
+temperature point times. Original anchor values are retained, but intermediate
+ramps can change: review the preview before saving the combined schedule.
 
 Times follow Home Assistant's configured time zone. On a spring DST change the
 curve advances with the wall clock; on the autumn repeat it repeats that hour.
@@ -106,7 +126,7 @@ are the saved schedule's targets, before per-device limits and manual-mode filte
 
 ## Manual and Schedule modes
 
-- Changing brightness or colour through HA pauses **both** curves for that light.
+- Changing brightness or colour through HA pauses the schedule for that light.
 - Explicit brightness or colour in a turn-on command is preserved and
   switches the light to Manual mode (including scenes).
 - Manual mode persists across light off/on cycles, profile enable/disable, reloads
@@ -153,7 +173,18 @@ enabling it requests a light state refresh each update cycle.
 
 The graph editor owns the schedule. Per-light select entities own Manual/Schedule
 mode, and the profile switches control enablement and adapted attributes.
-There are no custom integration actions or temporary settings overrides.
+The **Resume all schedules** panel button and `custom_lighting.resume_schedule`
+action return every controlled light to Schedule mode. Current targets are applied
+to lights that are on; off lights stay off and paused profiles remain paused.
+There are no temporary settings overrides.
+
+Use this action in an automation to reset manual overrides periodically:
+
+```yaml
+action: custom_lighting.resume_schedule
+```
+
+To resume just one light:
 
 ```yaml
 action: select.select_option

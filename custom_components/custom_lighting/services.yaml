@@ -1,1 +1,3 @@
-{}
+resume_schedule:
+  name: Resume all schedules
+  description: Return every controlled light to Schedule mode and apply current targets to lights that are on. Off lights stay off, and paused profiles remain paused.

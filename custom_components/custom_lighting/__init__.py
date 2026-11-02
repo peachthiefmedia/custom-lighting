@@ -1,6 +1,7 @@
 """Scheduled lighting with an Adaptive Lighting device controller."""
 
 import asyncio
+import probatio as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -13,9 +14,18 @@ from .const import DOMAIN, ATTR_ADAPTIVE_LIGHTING_MANAGER, CONF_LIGHTS
 from .frontend import async_setup_frontend, async_unload_frontend
 from .color_and_brightness import DEFAULT_CURVE, validate_curve
 from .helpers import expand_lights, light_group_members
+from .select import async_resume_all
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = [Platform.SWITCH, Platform.SELECT]
+
+
+async def async_setup(hass: HomeAssistant, config) -> bool:
+    """Register the single global action used by periodic reset automations."""
+    async def resume_schedule(call):
+        await async_resume_all(hass)
+    hass.services.async_register(DOMAIN, "resume_schedule", resume_schedule, schema=vol.Schema({}))
+    return True
 
 
 def resolve_profile_lights(hass: HomeAssistant, entry: ConfigEntry) -> list[str]:

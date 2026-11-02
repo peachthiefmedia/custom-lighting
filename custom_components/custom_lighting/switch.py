@@ -840,6 +840,7 @@ class AdaptiveSwitch(SwitchEntity, RestoreEntity):
         if (
             "color_temp" in features
             and adapt_color
+            and self._settings["color_temp_kelvin"] is not None
             and not (prefer_rgb_color and "color" in features)
         ):
             _LOGGER.debug("%s: Setting color_temp of light %s", self._name, light)

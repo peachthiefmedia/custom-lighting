@@ -135,6 +135,17 @@ class ActivationTests(unittest.IsolatedAsyncioTestCase):
         b = await switch.prepare_adaptation_data("light.second", 25, context=object())
         self.assertEqual(a["color_temp_kelvin"], 3000)
         self.assertEqual(b["color_temp_kelvin"], 5000)
+        # RGB sections must never pass a missing Kelvin value into CCT clamping.
+        switch._schedule.get_settings = lambda transition: {
+            "brightness_pct": 40, "color_temp_kelvin": None, "rgb_color": (255, 0, 128)}
+        cct = await switch.prepare_adaptation_data("light.first", 25, context=object())
+        self.assertNotIn("color_temp_kelvin", cct)
+        self.assertNotIn("rgb_color", cct)
+        self.assertIn("brightness", cct)
+        scope["_supported_features"] = lambda hass, eid: {"brightness", "color", "color_temp"}
+        rgb = await switch.prepare_adaptation_data("light.second", 25, context=object())
+        self.assertEqual(rgb["rgb_color"], (255, 0, 128))
+        self.assertNotIn("color_temp_kelvin", rgb)
 
 
 if __name__ == "__main__":

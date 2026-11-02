@@ -39,7 +39,7 @@ def api():
     connection = SimpleNamespace(require_admin=Mock(), send_result=Mock(), send_error=Mock())
     message = {"id": 1, "entry_id": "profile", "revision": scope["revision"](profile["curve"]),
                "curve": deepcopy(profile["curve"])}
-    message["curve"]["brightness"][0]["value"] = 19
+    message["curve"]["points"][0]["brightness"] = 19
     return scope, hass, profile, connection, message
 
 
@@ -56,7 +56,7 @@ class EditorApiTests(unittest.IsolatedAsyncioTestCase):
         await scope["ws_save_curve"](hass, connection, message)
         connection.send_result.assert_called_once()
         self.assertEqual(order, ["saved", "applied"])
-        self.assertEqual(profile["curve"]["brightness"][0]["value"], 19)
+        self.assertEqual(profile["curve"]["points"][0]["brightness"], 19)
         profile["switch"].manager.reset.assert_called_once_with("light.scheduled", reset_manual_control=False)
         self.assertTrue(profile["switch"].manager.manual_control["light.manual"])
 
@@ -85,7 +85,7 @@ class EditorApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_invalid_curve_does_not_reach_storage(self):
         scope, hass, profile, connection, message = api()
-        message["curve"]["brightness"] = []
+        message["curve"]["points"] = []
         await scope["ws_save_curve"](hass, connection, message)
         profile["curve_store"].async_save.assert_not_awaited()
         connection.send_error.assert_called_once()

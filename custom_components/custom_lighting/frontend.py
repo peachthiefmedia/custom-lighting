@@ -131,7 +131,7 @@ async def async_setup_frontend(hass):
                 hass, webcomponent_name="custom-lighting-panel",
                 frontend_url_path=PANEL, sidebar_title="Lighting",
                 sidebar_icon="mdi:chart-bell-curve-cumulative",
-                module_url=f"{STATIC_URL}/lighting-panel.js?v=0.2.0",
+                module_url=f"{STATIC_URL}/lighting-panel.js?v=0.3.0",
                 require_admin=True,
             )
 

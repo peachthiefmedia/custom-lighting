@@ -23,13 +23,16 @@ class CurveTests(unittest.TestCase):
     def test_validation_rejects_invalid_curves(self):
         for modify in (
             lambda c: c.update(interpolation="other"),
-            lambda c: c.update(brightness=[]),
-            lambda c: c["brightness"].append(dict(c["brightness"][0])),
-            lambda c: c["temperature"][0].update(value=float("nan")),
-            lambda c: c["brightness"][0].update(value=0),
-            lambda c: c["temperature"][0].update(time=1440),
-            lambda c: c["brightness"][0].update(time=True),
-            lambda c: c["brightness"][0].update(time=1.5),
+            lambda c: c.update(points=[]),
+            lambda c: c["points"].append(deepcopy(c["points"][0])),
+            lambda c: c["points"][0]["color"].update(value=float("nan")),
+            lambda c: c["points"][0].update(brightness=0),
+            lambda c: c["points"][0].update(time=1440),
+            lambda c: c["points"][0].update(time=True),
+            lambda c: c["points"][0].update(time=1.5),
+            lambda c: c["points"][0].update(color={"type": "rgb", "value": [256, 0, 0]}),
+            lambda c: c["points"][0].update(color={"type": "rgb", "value": [True, 0, 0]}),
+            lambda c: c["points"][0].update(color={"type": "rgb", "value": [1, 0]}),
         ):
             curve = deepcopy(schedule.DEFAULT_CURVE)
             modify(curve)
@@ -38,10 +41,10 @@ class CurveTests(unittest.TestCase):
 
     def test_validation_sorts_without_modifying_input(self):
         curve = deepcopy(schedule.DEFAULT_CURVE)
-        curve["brightness"].reverse()
+        curve["points"].reverse()
         normalized = schedule.validate_curve(curve)
-        self.assertEqual(normalized["brightness"][0]["time"], 0)
-        self.assertNotEqual(curve["brightness"], normalized["brightness"])
+        self.assertEqual(normalized["points"][0]["time"], 0)
+        self.assertNotEqual(curve["points"], normalized["points"])
 
     def test_linear_wrap_and_exact_points(self):
         points = [{"time": 360, "value": 20}, {"time": 1080, "value": 100}]
@@ -65,7 +68,7 @@ class CurveTests(unittest.TestCase):
                 self.assertLessEqual(value - 1e-9, max(before["value"], following["value"]))
 
     def test_midnight_value_and_slope_are_continuous(self):
-        points = schedule.DEFAULT_CURVE["brightness"]
+        points = [{"time": p["time"], "value": p["brightness"]} for p in schedule.DEFAULT_CURVE["points"]]
         epsilon = 0.001
         midnight = schedule.interpolate(points, 0)
         left = schedule.interpolate(points, -epsilon)
@@ -88,10 +91,54 @@ class CurveTests(unittest.TestCase):
         calculator = schedule.DailyLightSettings(curve, ZoneInfo("Europe/London"))
         with patch.dict(sys.modules, {"homeassistant.util.color": color}):
             summer = calculator.brightness_and_color(datetime(2026, 7, 1, 8, tzinfo=UTC))
-            self.assertEqual(summer["brightness_pct"], schedule.interpolate(curve["brightness"], 540))
+            self.assertEqual(summer["brightness_pct"], schedule.evaluate_curve(curve, 540)["brightness_pct"])
             first = calculator.brightness_and_color(datetime(2026, 10, 25, 0, 30, tzinfo=UTC))
             second = calculator.brightness_and_color(datetime(2026, 10, 25, 1, 30, tzinfo=UTC))
             self.assertEqual(first, second)
+
+    def test_rgb_interpolation_and_midnight_wrap(self):
+        curve = schedule.validate_curve({"interpolation": "linear", "points": [
+            {"time": 360, "brightness": 20, "color": {"type": "rgb", "value": [255, 0, 0]}},
+            {"time": 1080, "brightness": 100, "color": {"type": "rgb", "value": [0, 0, 255]}},
+        ]})
+        for minute in (0, 720, 1440):
+            values = schedule.evaluate_curve(curve, minute)
+            self.assertEqual(values["rgb_color"], (128, 0, 128))
+            self.assertIsNone(values["color_temp_kelvin"])
+            self.assertEqual(values["brightness_pct"], 60)
+
+    def test_temperature_sections_keep_native_kelvin(self):
+        curve = schedule.validate_curve({"interpolation": "smooth", "points": [
+            {"time": 360, "brightness": 20, "color": {"type": "temperature", "value": 2000}},
+            {"time": 1080, "brightness": 100, "color": {"type": "temperature", "value": 6000}},
+        ]})
+        values = schedule.evaluate_curve(curve, 720)
+        self.assertEqual(values["color_temp_kelvin"], 4000)
+        self.assertEqual(values["rgb_color"], schedule.temperature_to_rgb(4000))
+
+    def test_mixed_sections_convert_temperature_anchor_then_blend_rgb(self):
+        curve = schedule.validate_curve({"interpolation": "smooth", "points": [
+            {"time": 0, "brightness": 30, "color": {"type": "temperature", "value": 2000}},
+            {"time": 720, "brightness": 70, "color": {"type": "rgb", "value": [0, 0, 255]}},
+        ]})
+        start = schedule.temperature_to_rgb(2000)
+        expected = tuple(round((a + b) / 2) for a, b in zip(start, (0, 0, 255)))
+        self.assertEqual(schedule.evaluate_curve(curve, 360)["rgb_color"], expected)
+        self.assertEqual(schedule.evaluate_curve(curve, 1080)["rgb_color"], expected)
+        self.assertEqual(schedule.evaluate_curve(curve, 0)["rgb_color"], start)
+        self.assertIsNone(schedule.evaluate_curve(curve, 360)["color_temp_kelvin"])
+
+    def test_deployed_separate_curves_convert_without_losing_original_anchors(self):
+        legacy = {"interpolation": "smooth",
+            "brightness": [{"time": 0, "value": 10}, {"time": 600, "value": 80}],
+            "temperature": [{"time": 120, "value": 2200}, {"time": 720, "value": 5000}]}
+        curve = schedule.validate_curve(legacy)
+        self.assertEqual([p["time"] for p in curve["points"]], [0, 120, 600, 720])
+        for point in legacy["brightness"]:
+            self.assertEqual(schedule.evaluate_curve(curve, point["time"])["brightness_pct"], point["value"])
+        for point in legacy["temperature"]:
+            self.assertEqual(schedule.evaluate_curve(curve, point["time"])["color_temp_kelvin"], point["value"])
+        self.assertNotIn("points", legacy)
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ EDITOR = (ROOT / "custom_components/custom_lighting/frontend/lighting-panel.js")
 profile = {
     "id": "living-room", "name": "Living room", "enabled": True,
     "curve": schedule.DEFAULT_CURVE, "revision": "first", "timezone": "Europe/London",
-    "targets": {"brightness_pct": 75, "color_temp_kelvin": 4000},
+    "targets": {"brightness_pct": 75, "color_temp_kelvin": 4000, "rgb_color": [255, 200, 100]},
     "lights": [
         {"entity_id": "light.floor_lamp", "name": "Floor lamp", "state": "on", "mode": "Schedule"},
         {"entity_id": "light.ceiling", "name": "Ceiling lights", "state": "off", "mode": "Schedule"},
@@ -32,8 +32,10 @@ profile = {
 HTML = """<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>html,body{margin:0;height:100%;font-family:system-ui}</style></head><body>
 <script type="module">
-import {interpolate} from "/lighting-panel.js";
+import {interpolate, evaluateCurve} from "/lighting-panel.js";
 window.interpolate = interpolate;
+window.evaluateCurve = evaluateCurve;
+window.serviceCalls = [];
 window.profiles = [PROFILE];
 window.calls = [];
 window.failSave = false;
@@ -50,6 +52,9 @@ panel.hass = {config: {time_zone:"Europe/London"}, callWS:async msg => {
   if (msg.type === "custom_lighting/set_mode")
     profile.lights.find(l => l.entity_id === msg.light).mode = msg.mode;
   return structuredClone(profile);
+}, callService: async (domain, action, data) => {
+  serviceCalls.push({domain, action, data});
+  for (const profile of profiles) for (const light of profile.lights) light.mode = "Schedule";
 }};
 document.body.append(panel);
 window.panel = panel;
@@ -70,78 +75,121 @@ def check():
             content_type="text/javascript" if route.request.url.endswith(".js") else "text/html"))
         page.goto("http://lighting.test")
         page.locator("svg").first.wait_for()
-        assert page.locator("svg").count() == 2
+        assert page.locator("svg").count() == 1
         assert page.locator("[data-light]").count() == 2
         assert page.locator("#save").is_disabled()
 
-        # Numeric edits, save acknowledgement and failed saves retaining the draft.
-        page.locator('[data-value="brightness"]').fill("15")
-        page.locator('[data-value="brightness"]').press("Tab")
-        assert page.locator("#save").is_enabled()
+        # Fields can be edited then saved in a single click, without losing focus events.
+        page.locator("#point-brightness").fill("15")
         page.locator("#save").click()
         page.get_by_role("status").wait_for()
-        assert page.evaluate("profiles[0].curve.brightness[0].value") == 15
-        page.locator('[data-value="brightness"]').fill("17")
-        page.locator('[data-value="brightness"]').press("Tab")
+        assert page.evaluate("profiles[0].curve.points[0].brightness") == 15
+        page.locator("#point-brightness").fill("17")
+        page.locator("#point-brightness").press("Tab")
         page.evaluate("window.failSave = true")
         page.locator("#save").click()
         page.get_by_role("alert").wait_for()
         assert page.evaluate("panel._dirty()")
-        assert page.evaluate("profiles[0].curve.brightness[0].value") == 15
+        assert page.evaluate("profiles[0].curve.points[0].brightness") == 15
         page.evaluate("window.failSave = false")
         page.locator("#save").click()
         page.get_by_role("status").wait_for()
 
-        # A pointer drag changes both time and value of the selected point.
-        svg = page.locator('svg[data-channel="brightness"]')
+        # Shared time/brightness handles keep the selected point's colour.
+        svg = page.locator("svg")
         handle = svg.locator('[data-index="2"]')
         box, target = svg.bounding_box(), handle.bounding_box()
         page.mouse.move(target["x"] + target["width"]/2, target["y"] + target["height"]/2)
         page.mouse.down()
-        page.mouse.move(box["x"] + 55 + 600/1440*(box["width"]-75),
-                        box["y"] + 20 + 20/99*180, steps=8)
+        page.mouse.move(box["x"] + 55 + 667/1440*(box["width"]-75),
+                        box["y"] + 20 + 20/99*170, steps=8)
         page.mouse.up()
-        assert page.locator('[data-time="brightness"]').input_value() == "10:00"
-        assert page.locator('[data-value="brightness"]').input_value() == "80"
-        page.locator('[data-add="brightness"]').click()
-        assert page.evaluate("panel._draft.brightness.length") == 6
-        page.locator('[data-remove="brightness"]').click()
-        assert page.evaluate("panel._draft.brightness.length") == 5
+        assert page.locator("#point-time").input_value() == "11:00"
+        assert page.locator("#point-brightness").input_value() == "80"
+        svg.locator('[data-index="2"]').focus()
+        page.keyboard.press("ArrowRight")
+        assert page.locator("#point-time").input_value() == "11:15"
+        page.keyboard.press("ArrowLeft")
+        assert page.locator("#point-time").input_value() == "11:00"
+        page.locator("#point-time").fill("11:22")
+        assert page.locator("#point-time").input_value() == "11:15"
+        page.locator("#add").click()
+        assert page.evaluate("panel._draft.points.length") == 6
+        page.locator("#remove").click()
+        assert page.evaluate("panel._draft.points.length") == 5
 
-        # Per-light mode updates do not discard an unsaved curve.
+        # The picker and exact hex input share an RGB value.
+        svg.locator('[data-index="0"]').click()
+        page.locator("#color-type").select_option("rgb")
+        page.locator("#point-hex").fill("#ff0088")
+        page.locator("#point-hex").press("Tab")
+        assert page.locator("#point-rgb").input_value() == "#ff0088"
+        assert page.evaluate("panel._draft.points[0].color.value") == [255, 0, 136]
+        page.locator("#save").click()
+        page.get_by_role("status").wait_for()
+        assert page.evaluate("profiles[0].curve.points[0].color.type") == "rgb"
+
+        # Modes and global resume preserve unsaved schedule edits; off lights stay off.
+        page.locator("#point-brightness").fill("18")
+        page.locator("#point-brightness").press("Tab")
         page.locator('[data-light="light.floor_lamp"]').select_option("Manual")
         page.wait_for_function("profiles[0].lights[0].mode === 'Manual' && !panel._busy")
         assert page.evaluate("panel._dirty()")
-        assert page.locator('[data-light="light.ceiling"]').input_value() == "Schedule"
+        page.locator("#resume-all").click()
+        page.wait_for_function("serviceCalls.length === 1 && !panel._busy")
+        assert page.evaluate("serviceCalls[0].domain") == "custom_lighting"
+        assert page.evaluate("serviceCalls[0].action") == "resume_schedule"
+        assert page.locator('[data-light="light.floor_lamp"]').input_value() == "Schedule"
+        assert page.evaluate("profiles[0].lights[1].state") == "off"
+        assert page.evaluate("panel._dirty()")
         page.locator("#save").click()
         page.get_by_role("status").wait_for()
 
-        # Another editor changing the curve causes a conflict, preserving our draft.
-        page.locator('[data-value="temperature"]').fill("2300")
-        page.locator('[data-value="temperature"]').press("Tab")
+        # Switch a single point back to Kelvin, then handle another editor's save.
+        page.locator("#color-type").select_option("temperature")
+        page.locator("#point-kelvin").fill("2300")
+        page.locator("#point-kelvin").press("Tab")
         page.locator("h1").click()
-        page.evaluate("profiles[0].revision = 'external'; profiles[0].curve.temperature[0].value = 2400")
+        page.evaluate("profiles[0].revision = 'external'; profiles[0].curve.points[0].color = {type:'temperature',value:2400}")
         page.evaluate("panel._refresh()")
         page.wait_for_function("panel._conflict")
         assert page.locator("#save").is_disabled()
-        assert page.evaluate("panel._draft.temperature[0].value") == 2300
+        assert page.evaluate("panel._draft.points[0].color.value") == 2300
         page.once("dialog", lambda dialog: dialog.accept())
         page.locator("#revert").click()
-        assert page.evaluate("panel._draft.temperature[0].value") == 2400
+        assert page.evaluate("panel._draft.points[0].color.value") == 2400
 
-        # The plotted frontend curve must equal the backend's output.
+        # Match the actual mixed RGB/Kelvin evaluator, including ties and midnight.
         rng = random.Random(29)
         for method in ("smooth", "linear"):
             for _ in range(8):
-                points = [{"time": t, "value": rng.randint(1, 100)}
+                points = [{"time": t, "brightness": rng.randint(1, 100),
+                           "color": ({"type": "rgb", "value": [rng.randint(0,255) for _ in range(3)]}
+                                     if rng.choice([True, False])
+                                     else {"type": "temperature", "value": rng.randint(1000,10000)})}
                           for t in sorted(rng.sample(range(1440), 7))]
+                curve = {"interpolation": method, "points": points}
                 minutes = list(range(0, 1441, 7))
-                expected = [schedule.interpolate(points, minute, method) for minute in minutes]
+                expected = [schedule.evaluate_curve(curve, minute) for minute in minutes]
                 actual = page.evaluate(
-                    "({points, minutes, method}) => minutes.map(m => interpolate(points, m, method))",
-                    {"points": points, "minutes": minutes, "method": method})
-                assert all(abs(a-b) < 1e-8 for a, b in zip(actual, expected))
+                    "({curve, minutes}) => minutes.map(m => evaluateCurve(curve, m))",
+                    {"curve": curve, "minutes": minutes})
+                for a, b in zip(actual, expected):
+                    assert abs(a["brightness_pct"]-b["brightness_pct"]) < 1e-8
+                    assert a["color_temp_kelvin"] == b["color_temp_kelvin"]
+                    assert a["rgb_color"] == list(b["rgb_color"])
 
+        # Leave a colourful draft visible for desktop/mobile screenshot review.
+        svg.locator('[data-index="2"]').click()
+        page.locator("#color-type").select_option("rgb")
+        page.locator("#point-hex").fill("#b130ff")
+        page.locator("#point-hex").press("Tab")
+        svg.locator('[data-index="3"]').click()
+        page.locator("#color-type").select_option("rgb")
+        page.locator("#point-hex").fill("#2b92ff")
+        page.locator("#point-hex").press("Tab")
+
+        page.locator("h1").click()
         page.evaluate("panel.scrollTop = 0; panel.style.height = 'auto'; panel.style.overflow = 'visible'")
         page.screenshot(path=str(artifacts / "editor-desktop.png"), full_page=True)
         page.set_viewport_size({"width": 390, "height": 844})
@@ -150,7 +198,7 @@ def check():
         page.screenshot(path=str(artifacts / "editor-mobile.png"), full_page=True)
         assert not errors, errors
         browser.close()
-    print("Browser checks passed: editing, drag, save/failure, modes, conflicts, mobile layout and curve parity.")
+    print("Browser checks passed: combined editing, RGB/Kelvin, global reset, drag, save failures, modes, conflicts, mobile layout and curve parity.")
 
 
 if __name__ == "__main__":

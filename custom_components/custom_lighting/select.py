@@ -1,11 +1,31 @@
 """A persistent Manual/Schedule mode for each controlled light."""
 
+import asyncio
 from homeassistant.components.select import SelectEntity
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .const import DOMAIN, MODE_SIGNAL
 
 MODES = ["Schedule", "Manual"]
+
+
+async def async_resume_all(hass):
+    """Clear every manual override, then apply schedules without powering lights on."""
+    switches = [profile["switch"] for profile in hass.data.get(DOMAIN, {}).values()
+                if isinstance(profile, dict) and "switch" in profile
+                and not getattr(profile["switch"], "_unloading", False)]
+    for switch in switches:
+        switch.manager.reset(*switch.lights)
+    results = await asyncio.gather(*(
+        switch._update_attrs_and_maybe_adapt_lights(
+            context=switch.create_context("resume_all"),
+            lights=switch.lights, transition=switch.initial_transition,
+        ) for switch in switches if switch.is_on
+    ), return_exceptions=True)
+    failures = [str(result) for result in results if isinstance(result, Exception)]
+    if failures:
+        raise HomeAssistantError("Modes reset, but applying schedules failed: " + "; ".join(failures))
 
 
 async def async_set_mode(hass, switch, light, mode):
